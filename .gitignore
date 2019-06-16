@@ -5,6 +5,9 @@
 ### NASM ###
 *.bin
 
+### IMAGE ###
+*.img
+
 ### C ###
 # Prerequisites
 *.d
