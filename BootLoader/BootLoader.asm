@@ -2,59 +2,216 @@
 [BITS 16]
 
 SECTION .text
-					; Value of Segment Register will be translated by multiplying 16(= << 4), See 93 Page
-jmp 0x07C0:START	; Copy "0x07C0" To CS Segment Reg
-					; Copy "Address of START Label" to IP Reg
+										; Value of segment register will be translated by multiplying 16(= << 4), See 93 page
+jmp 0x07C0:START						; Copy "0x07C0" to CS segment reg
+										; Copy "Address of START Label" to IP reg
 
-START:				; global function
-	mov ax, 0x07C0	; Address of Bootloader
-	mov ds, ax		; Set Address of Bootloader to DS Segment Register
-	mov ax, 0xB800	; Address of Video Memory
-	mov es, ax		; Set Address of Video Memory to ES Segment Register
+TOTALSECTORCOUNT:
+	dw 1024								; Size of BBI OS except bootloader
+										; Maximum is 1152 sectors (0x90000 bytes)
 
-	mov si, 0		; SI Register(String source index Register)
+; Global function
+START:
+	mov ax, 0x07C0						; Address of bootloader
+	mov ds, ax							; Set address of bootloader to DS segment register
+	mov ax, 0xB800						; Address of video memory
+	mov es, ax							; Set address of video memory to ES segment register
 
-.SCREENCLEARLOOP:					; .FUNCTION is local Function
-	mov byte [ es: si ], 0			; Write 0x00 to clear Video Memory
-	mov byte [ es: si + 1 ], 0x0A	; Write 0x0A to set Attr to printing green char, black background
+	; Create Stack whose size is 64KB at 0x0000:0000 ~ 0x0000:FFFF
 
-	add si, 2						; Move next char
-	cmp si, 80 * 25 * 2				; Compare si and (80 * 25 * 2) to check it finished
+	mov ax, 0x0000						; Set AX reg to 0x0000
+	mov ss, ax							; Set SS reg to 0x0000
+	mov sp, 0xFFFE						; Set SP reg to 0xFFFE
+	mov bp, 0xFFFE						; Set BP reg to 0xFFFE
 
-	jl .SCREENCLEARLOOP				; if not, print next
+	; Clear Screen and Set attr to GREEN
+	mov	si, 0							; Initialize SI reg standing for (String) Source index
 
-	mov si, 0						; Init SI Reg
-	mov di, 0						; Init DI Reg
+; .FUNCTION is local Function
+.SCREENCLEARLOOP:						
+	mov byte [es:si], 0					; Write 0x00 to clear video memory
+	mov byte [es:si+1], 0x0A			; Write 0x0A to set Attr to printing green char, black background
 
-.MESSAGELOOP:						; Loop to print message
-	mov cl, byte [ si + MESSAGE1 ]	; MESSAGE1 주소에서 SI 레지스터 값 만큼 더한 위치의 문자를 CL 레지스터에 복사
-									; 문자열은 1 바이트면 충분하므로, CX 레지스터 하위 1바이트만 사용
+	add si, 2							; Move next char
+	cmp si, 80 * 25 * 2					; Compare si and (80 * 25 * 2) to check it finished
 
-	cmp cl, 0				; Compare copied char and 0x0
-	je .MESSAGEEND			; if char is 0x0, then goto .MESSAGEEND to finish
+	jl	.SCREENCLEARLOOP				; If not, print next
 
-	mov byte [ es: di ], cl	; if not, mov value of CL Reg to (value of ES) + DI
+	; Print start message at the top of screen
+	push MESSAGE1						; Push address of MESSAGE1
+	push 0								; Push Y Coord of message
+	push 0								; Push X Coord of message
+	call PRINTMESSAGE					; Call PRINTMESSAGE Function
+	add	sp, 6							; Cleanup stack parameters
+
+	; Print message about loading os image
+	push IMAGELOADINGMESSAGE			; Push address of IMAGE LOADING MESSAGE
+	push 1								; Push Y Coord of message
+	push 0								; Push X Coord of message
+	call PRINTMESSAGE					; Call PRINTMESSAGE Function
+	add sp, 6							; Cleanup stack parameters 
+
+; Call BIOS reset function
+RESETDISK:
+	; Set 0 to Service No. which is Floopy Disk
+
+	mov ax, 0
+	mov dl, 0
+	int	0x13
+
+	; If error occurs, goto error handling
+	jc	HANDLEDISKERROR
+
+	; Read Sector From Disk
+	mov	si, 0x1000						; Set address where disk data will be saved
+	mov es, si							; Set ES reg to value of si
+	mov bx, 0x0000						; Set BX reg to 0x0000, to make Dst addr 0x1000:0000
+
+	mov di, word[TOTALSECTORCOUNT]		; Set DI reg to number of sectors for coping OS image
+
+READDATA:
+	cmp di, 0							; Check reading OS image is finished
+	je READEND							; If number of sector to read is 0, then goto READEND
+	sub di, 0x1							; Substract DI reg by 1
+
+	; Call BIOS read function
+	mov ah, 0x02						; BIOS Service No. 2
+	mov al, 0x1							; Number of sector to read is 1
+	mov ch, byte[TRACKNUMBER]			; Set track No. to read
+	mov cl, byte[SECTORNUMBER]			; Set sector No. to read
+	mov dh, byte[HEADNUMBER]			; Set head No. to read
+	mov dl, 0x00						; Set drive No. to read
+
+	int 0x13							; Execute interupt service
+	jc	HANDLEDISKERROR					; If error, do HANDLEDISKERROR
+
+	add si, 0x0020						; Add 512 to SI reg to read next sector
+	mov es, si							; Set ES reg to value of SI reg to read next sector
+
+	mov al, byte[SECTORNUMBER]			; Set AL reg to sector number
+	add al, 0x01						; Increase sector number by 1
+	mov byte[SECTORNUMBER], al			; Write increased sector number to AL reg
+	cmp al, 19							; Compare sector number with 19 to check it's last
+	jl READDATA							; If not, call READDATA recursively
+
+	; After reading last sector, toggle head number(0 <-> 1) and set 1 to sector number
+	xor byte[HEADNUMBER], 0x01			; toggle HEADNUMBER (0 <-> 1)
+	mov byte[SECTORNUMBER], 0x01		; set 1 to SECTORNUMBER
+
+	; If HEADNUMBER is changed from 1 to 0, increase track number by 1
+	cmp byte[HEADNUMBER], 0x00			; Compare HEADNUMBER with 0x00
+	jne READDATA						; If not same, goto READDATA
+
+	; Increase TRACKNUMBER by 1 and goto READDATA
+	add byte[TRACKNUMBER], 0x01			; Increase TRACKNUMBER by 1
+	jmp READDATA						; Goto READDATA
+
+; Print Load OS Image is finished
+READEND:
+	push LOADINGCOMPLETEMESSAGE			; Push address of LOADING COMPLETE MESSAGE to stack
+	push 1								; Push Y Coord(1) to stack
+	push 20								; Push X Coord(20) to stack
+	call PRINTMESSAGE					; Call PRINTMESSAGE function
+	add sp, 6							; cleanup stack
+
+	; Execute virtual OS Image loaded
+	jmp 0x1000:0000
+
+; Function to handle disk error
+HANDLEDISKERROR:
+	push DISKERRORMESSAGE				; Push address of DISK ERROR MESSAGE to stack
+	push 1								; Push Y Coord(1) to stack
+	push 20								; Push X Coord(20) to stack
+	call PRINTMESSAGE					; Call PRINTMESSAGE function
+
+	jmp $								; Do infinite loop
+
+; Function to print message 
+; Param: Coord x, Coord y, String s
+PRINTMESSAGE:
+	push bp								; Push base pointer to stack
+	mov bp, sp							; Set BP reg to value of SP reg for accessing to parameters by using base pointer
 	
-	add si, 1				; SI 레지스터에 1을 더해 다음 문자열로 이동
-	add di, 2				; DI 레지스터에 2를 더해, 비디오 메모리 다음 문자 출력 위치로 이동
-							; 비디오 메모리는 (문자, 속성) 쌍으로 구성되므로, 속성 없이 문자만 설정하기 위해서는 2씩 이동
+	push es								; Push (ES ~ DX) regs value to stack
+	push si								; 
+	push di								;
+	push ax								;
+	push cx								;
+	push dx								; After executing function, restore regs' value with temporarily stack values
+
+	mov	ax, 0xB800						; Set 0xB800 to AX reg
+	mov es, ax							; Set ES reg to 0xB800(Address of Video Memory)
+
+	; Calculate line address by using X, Y coord
+	; Calculate address of line by using Y coord
+	mov ax, word[bp + 6]				; Set AX reg to 2nd parameter(=Y Coord)
+	mov si, 160							; Set SI reg to number of bytes in 1 line
+	mul si								; Multiply AX reg value and SI reg value to calculate address of Y coord
+	mov di, ax							; Set DI reg to calculated address of Y coord
+
+	; Calculate finally address of line by using X coord and multipling 2
+	mov ax, word[bp + 4]				; Set AX reg to 1st parameter(=X Coord)
+	mov si, 2							; Set SI reg to 2, number of bytes in 1 character
+	mul si								; Multiply AX reg value and SI reg value to calculate address of X coord
+	mov di, ax							; Set DI reg to value of AX reg(=Final address of video memory)
+
+	mov si, word[bp + 8]				; Set si reg to 3rd parameter(=Address of print message)
+
+; Loop to print message
+.MESSAGELOOP:
+	mov cl, byte[si]					; Get 1 byte from address pointed by SI reg and set it to CL reg
+
+	cmp cl, 0							; Compare 1 byte character and 0x0
+	je .MESSAGEEND						; If value of character is 0x0, then goto .MESSAGEEND to finish
+
+	mov byte [es:di], cl				; If not, mov value of CL reg to (value of ES) + DI
 	
-	jmp .MESSAGELOOP		; 다음 문자를 출력하기 위해 이동
+	add si, 1							; Add 1 to SI reg to point next character
+	add di, 2							; Add 2 to DI reg to point next video memory addr for printing
+										; Because video memory is composed of pair of character(1 byte) and attributes(1 byte)
+										; to set character only, move by 2 bytes
+	
+	jmp .MESSAGELOOP					; call MESSAGELOOP recursively to print next character
 	
 .MESSAGEEND:
-	jmp	$					; 현재 위치에서 무한루프 수행
+	pop dx								; Restore DX ~ ES Reg with value in stack temporarily
+	pop cx								; 
+	pop ax								;
+	pop di								;
+	pop si								;
+	pop es								; Stack is FILO, pop reversly
+
+	pop bp								; Restore Base Point Reg
+	ret
 
 MESSAGE1:
-	db 'BBI OS Boot Loader Start~!!', 0	; 마지막 값을 0으로 설정해 .MESSAGELOOP에서 문자열이 종료됐음을 인지할 수 있도록 만듦
-	
-times 510 - ($ - $$) db 0x00	; $					현재 Line의 Address
-								; $$				현재 Section(.text)의 Src Address
-								; $ - $$			현재 Section을 기준으로 하는 Offset
-								; 510 - ($ - $$)	현재부터 Adress 510 까지
-								; db 0x00			1바이트를 선언하고 값은 0
-								; time				반복 수행
-								; 현 위치에서 510 번지까지 0x00 쓰기
+	db 'BBI OS Boot Loader Start~!!', 0	; Set last value as 0 to make .MESSAGELOOP knows the string is finished
 
-db 0x55							; 511번지에 0x55를 쓰기
-db 0xAA							; 512번지에 0xAA를 쓰기
-								; 부트 섹터임을 표기
+DISKERRORMESSAGE:
+	db 'DISK Error!', 0
+
+IMAGELOADINGMESSAGE:
+	db 'OS Image Loading...', 0
+
+LOADINGCOMPLETEMESSAGE:
+	db 'Complete!', 0
+
+; Variables related with DISKREAD
+SECTORNUMBER:
+	db 0x02								; Sector number of OS image
+HEADNUMBER:
+	db 0x00								; Head number of OS image
+TRACKNUMBER:
+	db 0x00								; Track number of OS image
+	
+times 510 - ($ - $$) db 0x00			; $					Address of current line
+										; $$				Source address of current section(.text)
+										; $ - $$			Offset from current section(.text)
+										; 510 - ($ - $$)	Distance from current offset to 510
+										; db 0x00			Declare 1 byte and set 0
+										; times				Repeat
+										; Write 0x00 from current address to 510
+
+db 0x55									; Declare 1 byte and set 0x55 at address 511
+db 0xAA									; Declare 1 byte and set 0xAA at address 512
+										; which means, it is boot sector
