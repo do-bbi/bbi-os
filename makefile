@@ -1,6 +1,6 @@
-all: BootLoader Kernel32 Disk.img
+all: BootLoader.bin Kernel32.bin Disk.img
 
-BootLoader:
+BootLoader.bin:
 	@echo
 	@echo ==================== Build BootLoader ====================
 	@echo
@@ -11,7 +11,7 @@ BootLoader:
 	@echo ====================  Build Complete  ====================
 	@echo
 
-Kernel32:
+Kernel32.bin:
 	@echo
 	@echo ====================  Build Kernel32  ====================
 	@echo
@@ -22,12 +22,12 @@ Kernel32:
 	@echo ====================  Build Complete  ====================
 	@echo
 
-Disk.img: BootLoader Kernel32
+Disk.img: BootLoader/BootLoader.bin Kernel32/Kernel32.bin
 	@echo
 	@echo ==================== Build DiskImg ====================
 	@echo
 
-	cat BootLoader/Bootloader.bin Kernel32/VirtualOS.bin > Disk.img
+	cat $^ > Disk.img
 
 	@echo
 	@echo ==================== Build Complete ====================

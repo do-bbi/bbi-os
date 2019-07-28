@@ -7,7 +7,7 @@ jmp 0x07C0:START						; Copy "0x07C0" to CS segment reg
 										; Copy "Address of START Label" to IP reg
 
 TOTALSECTORCOUNT:
-	dw 1024								; Size of BBI OS except bootloader
+	dw 1								; Size of BBI OS except bootloader
 										; Maximum is 1152 sectors (0x90000 bytes)
 
 ; Global function
@@ -91,7 +91,7 @@ READDATA:
 	mov al, byte[SECTORNUMBER]			; Set AL reg to sector number
 	add al, 0x01						; Increase sector number by 1
 	mov byte[SECTORNUMBER], al			; Write increased sector number to AL reg
-	cmp al, 19							; Compare sector number with 19 to check it's last
+	cmp al, 36 + 1						; Compare sector number with 36 + 1 to check it's last
 	jl READDATA							; If not, call READDATA recursively
 
 	; After reading last sector, toggle head number(0 <-> 1) and set 1 to sector number
@@ -153,7 +153,7 @@ PRINTMESSAGE:
 	mov ax, word[bp + 4]				; Set AX reg to 1st parameter(=X Coord)
 	mov si, 2							; Set SI reg to 2, number of bytes in 1 character
 	mul si								; Multiply AX reg value and SI reg value to calculate address of X coord
-	mov di, ax							; Set DI reg to value of AX reg(=Final address of video memory)
+	add di, ax							; Set DI reg to value of AX reg(=Final address of video memory)
 
 	mov si, word[bp + 8]				; Set si reg to 3rd parameter(=Address of print message)
 
