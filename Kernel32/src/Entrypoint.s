@@ -24,7 +24,7 @@ START:
 	mov cr0, eax						; Enter protect mode by set CR0
 	
     ; Replace Kernel Code Segment whose base is 0x00
-    ; And set EIP value to 0x00 (EIP is CS Segment selector)
+    ; [CS Segment Selector]=0x08, EIP=(PROTECTEDMODE - $$ + 0x10000)
     jmp dword 0x08: (PROTECTEDMODE - $$ + 0x10000)
 
 [BITS 32]
@@ -46,7 +46,9 @@ PROTECTEDMODE:
     call PRINTMESSAGE
     add esp, 12
 
-    jmp $
+    ; jmp $
+    ; [CS Segment Selector]=0x08, EIP=0x10200 
+    jmp dword 0x08: 0x10200 ; C 언어 커널이 존재하는 0x10200 어드레스로 이동하여 C 언어 커널 수행
 
 ; Function to print message 
 ; Param: Coord x, Coord y, String s

@@ -127,3 +127,11 @@ Temporary Items
 .apdisk
 
 # End of https://www.gitignore.io/api/c,c++,cmake,macos
+qemu.sh
+
+### Code ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
