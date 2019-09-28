@@ -38,7 +38,7 @@ If your host development OS is windows, install mingw64(I recommend using [choco
             "name": "(Windows) Launch",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "$(MSYS2_DIR)/usr/bin/bash",
+            "program": "${env:MSYS2_DIR}/usr/bin/bash",
             "args": ["./qemu.sh"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
