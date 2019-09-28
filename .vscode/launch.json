@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(Windows) Launch",
+            "name": "Launch",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "C:/tools/msys64/usr/bin/bash",
+            "program": "${env:MSYS2_DIR}/usr/bin/bash",
             "args": ["./qemu.sh"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
