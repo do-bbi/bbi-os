@@ -2,6 +2,8 @@
 
 void kPrintString(int iX, int iY, const char* pcString);
 
+// [Main Address] = 0x10200
+// EntryPoint.s will execute Main firstly.
 void Main(void) {
     kPrintString(0, 3, "C Language Kernel Start!");
 

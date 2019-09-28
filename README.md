@@ -12,8 +12,7 @@ To build from source, you will need about
 - [binutils](https://ftp.gnu.org/gnu/binutils/)
 - [gcc](https://ftp.gnu.org/gnu/gcc/)
 - [nasm](https://www.nasm.us/)
-- [qemu@0.10.4](https://download-mirror.savannah.gnu.org/releases/qemu/)
-  ※ Disk I/O mechanism of qemu@>0.10.4 is diffrenct from qemu@0.10.4, please use qemu@0.10.4
+- [qemu](https://www.qemu.org/download/)
 
 ## System Requirements
 Windows, Linux, MacOS are the current supported host development operating systems.
@@ -26,3 +25,52 @@ You can download cross compiled gcc from [here](http://crossgcc.rts-software.org
 We will use Make as build tool, please install make for build <br>
 If your host development OS is windows, install mingw64(I recommend using [chocolatey](https://chocolatey.org/))
 - choco install mingw
+
+## .vscode/launch.json
+```
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(Windows) Launch",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "$(MSYS2_DIR)/usr/bin/bash",
+            "args": ["./qemu.sh"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true
+        }
+    ]
+}
+```
+
+## .vscode/tasks.json
+```
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Make",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "-j"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
+```
