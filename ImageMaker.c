@@ -1,7 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
+
+#ifdef __APPLE__
+#include <sys/uio.h>
+#else
 #include <io.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -24,8 +30,11 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "[ERROR] ImageMaker.exe BootLoader.bin Kernel32.bin\n");
         exit(-1);
     }
-
+#ifdef __APPLE__
+    if( (dstFD = open("Disk.img", O_RDWR | O_CREAT | O_TRUNC, S_IREAD | S_IWRITE)) == -1) {
+#else
     if( (dstFD = open("Disk.img", O_RDWR | O_CREAT | O_TRUNC | O_BINARY, S_IREAD | S_IWRITE)) == -1) {
+#endif
         fprintf(stderr, "[ERROR] Disk.img open failed\n");
         exit(-1);
     }
@@ -34,7 +43,11 @@ int main(int argc, char *argv[]) {
         부트 로더 파일을 열어서 모든 내용을 디스크 이미지 파일로 복사
     */
     printf("[INFO] Copy BootLoader to image file\n");
+#ifdef __APPLE__
+    if( (srcFD = open(argv[1], O_RDONLY)) == -1) {
+#else
     if( (srcFD = open(argv[1], O_RDONLY | O_BINARY)) == -1) {
+#endif
         fprintf(stderr, "[ERROR] %s open failed\n", argv[1]);
         exit(-1);
     }
@@ -49,7 +62,11 @@ int main(int argc, char *argv[]) {
         32bit 커널 파일을 열어서 모든 내용을 디스크 이미지 파일로 복사
     */
     printf("[INFO] Copy protected mode kernel to image file\n");
+#ifdef __APPLE__
+    if((srcFD = open(argv[2], O_RDONLY)) == -1) {
+#else
     if((srcFD = open(argv[2], O_RDONLY | O_BINARY)) == -1) {
+#endif
         fprintf(stderr, "[ERROR] %s open failed\n", argv[2]);
         exit(-1);
     }
