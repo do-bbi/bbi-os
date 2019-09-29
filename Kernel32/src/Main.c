@@ -36,3 +36,24 @@ void kPrintString(int iX, int iY, const char *pcString) {
     for(i = 0; pcString[i]; ++i)
         pstScreen[i].bCharacter = pcString[i];
 }
+
+// IA-32e 모드용 커널 영역 0으로 초기화
+BOOL kInitializeKernel64Area(void) {
+    DWORD *pCurrentAddres;
+
+    // 초기화를 시작할 주소 0x100000(1MB)
+    pCurrentAddres = (DWORD *)0x100000;
+
+    // 마지막 주소인 0x600000(6MB)까지 반복문을 돌면서 4Bytes 씩 0으로 채움
+    while((DWORD)pCurrentAddres < 0x600000) {
+        *pCurrentAddres = 0x00;
+
+        // 0으로 저장한 후 다시 읽었을 때 0이 나오지 않으면 해당 주소 영역에 문제가 있는 것이므로 중단
+        if(*pCurrentAddres)
+            return FALSE;
+            
+        pCurrentAddres++;
+    }
+
+    return TRUE;
+}
