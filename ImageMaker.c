@@ -30,6 +30,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "[ERROR] ImageMaker.exe BootLoader.bin Kernel32.bin\n");
         exit(-1);
     }
+
+    // Create Disk.img
 #ifdef __APPLE__
     if( (dstFD = open("Disk.img", O_RDWR | O_CREAT | O_TRUNC, S_IREAD | S_IWRITE)) == -1) {
 #else
@@ -75,17 +77,13 @@ int main(int argc, char *argv[]) {
     close(srcFD);
 
     // 파일 크기를 섹터 크기인 512 바이트로 맞추기 위해 나머지 부분을 0x00으로 채움
-    kernel32SectorCount = AdjustInSectorSize(srcFD, dstFD);
-    close(srcFD);
-
-    kernel32SectorCount = AdjustInSectorSize(srcFD, srcSize);
+    kernel32SectorCount = AdjustInSectorSize(dstFD, srcSize);
     printf("[INFO] %s size = %d Bytes / Sector count = %d Bytes\n", argv[2], srcSize, kernel32SectorCount);
 
     /*
         디스크 이미지에 커널 정보 갱신
     */
    printf("[INFO] Start to write kernel information\n");
-
    // 부트 섹터의 5번째 바이트 부터 커널에 대한 정보를 넣음
    WriteKernelInformation(dstFD, kernel32SectorCount);
    printf("[INFO] Image file create complete");
@@ -114,7 +112,7 @@ int AdjustInSectorSize(int fd, int srcSize) {
         }
     }
     else
-        printf("[INFO] File size is aligned 512 bytes\n");
+        printf("[INFO] File size is aligned %d bytes\n", BYTES_OF_SECTOR);
 
     sectorCount = (srcSize + adjustSizeToSector) / BYTES_OF_SECTOR;
 
