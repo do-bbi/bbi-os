@@ -7,7 +7,7 @@ jmp 0x07C0:START						; Copy "0x07C0" to CS segment reg
 										; Copy "Address of START Label" to IP reg
 
 TOTALSECTORCOUNT:
-	dw 0x02								; Size of BBI OS except bootloader
+	dw 1024; 0x02						; Size of BBI OS except bootloader
 										; Maximum is 1152 sectors (0x90000 bytes)
 
 ; Global function
