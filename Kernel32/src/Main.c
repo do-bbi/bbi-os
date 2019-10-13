@@ -1,4 +1,7 @@
 #include "Types.h"
+#include "Page.h"
+
+#define PRINT_PASS_POS (45)
 
 void kPrintString(int iX, int iY, const char* pcString);
 
@@ -9,16 +12,19 @@ BOOL kIsMemoryEnough(void);
 // EntryPoint.s will execute Main firstly.
 void Main(void) {
     DWORD i;
-    
-    kPrintString(0, 3, "C language kernel start!....................[PASS]");
+    int posY;
 
-    kPrintString(0, 4, "Minimum memory size check...................[    ]");
+    posY = 3;
+    kPrintString(0, posY, "C language kernel start!....................[PASS]");
+
+    posY++;
+    kPrintString(0, posY, "Minimum memory size check...................[    ]");
     if(!kIsMemoryEnough()) {
-        kPrintString(45, 4, "FAIL");
-        kPrintString(0, 5, "Not enough memory, MINT64 OS requires over 64MBs memory");
+        kPrintString(PRINT_PASS_POS, posY, "FAIL");
+        kPrintString(0, posY + 1, "Not enough memory, MINT64 OS requires over 64MBs memory");
         while(TRUE);
     }
-    kPrintString(45, 4, "PASS");
+    kPrintString(PRINT_PASS_POS, posY, "PASS");
 
     // 1. PC의 장착된 물리 메모리가 64MB 이상인지 확인
     // - 커널이 올라가는 메모리 주소는 0x10000, 만약 1MB 이하의 어드레스 중에 비디오 메모리가 위치한 
@@ -31,13 +37,20 @@ void Main(void) {
     //   하기 때문에, 커널 이미지를 올리기 전에 0으로 초기화 함
 
     // IA-32e 모드 커널 영역 초기화
-    kPrintString(0, 5, "IA-32e Kernel area initialize...............[    ]");
+    posY++;
+    kPrintString(0, posY, "IA-32e Kernel area initialize...............[    ]");
     if(!kInitializeKernel64Area()) {
-        kPrintString(45, 5, "FAIL");
-        kPrintString(0, 6, "Kernel area initialization failed");
+        kPrintString(PRINT_PASS_POS, posY, "FAIL");
+        kPrintString(0, posY + 1, "Kernel area initialization failed");
         while(TRUE);
     }
-    kPrintString(45, 5, "PASS");
+    kPrintString(PRINT_PASS_POS, posY, "PASS");
+
+    // IA-32e 모드 커널을 위한 페이지 테이블 생성
+    posY++;
+    kPrintString(0, posY, "IA-32e Page Tables Initialize...............[    ]");
+    kInitializePageTables();
+    kPrintString(PRINT_PASS_POS, posY, "PASS");
 
     while(TRUE);
 }
