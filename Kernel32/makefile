@@ -7,7 +7,7 @@ OBJCOPY32 = x86_64-pc-linux-objcopy -j .text -j .data -j .rodata -j .bss -S -O b
 OBJDIR = tmp
 SRCDIR = src
 
-all: prepare Kernel32.bin
+all: clean prepare Kernel32.bin
 
 prepare:
 	mkdir -p $(OBJDIR)

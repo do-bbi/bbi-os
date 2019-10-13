@@ -60,9 +60,7 @@ If your host development OS is windows, install mingw64(I recommend using [choco
             "label": "Make",
             "type": "shell",
             "command": "make",
-            "args": [
-                "-j"
-            ],
+            "args": [],
             "options": {
                 "cwd": "${workspaceFolder}"
             },
