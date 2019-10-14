@@ -1,7 +1,9 @@
 #include "Types.h"
 #include "Page.h"
+#include "ModeSwitch.h"
 
-#define PRINT_PASS_POS (45)
+#define PRINT_BLANK_POS  (45)
+#define VENDOR_STR_LEN  (12)
 
 void kPrintString(int iX, int iY, const char* pcString);
 
@@ -12,6 +14,8 @@ BOOL kIsMemoryEnough(void);
 // EntryPoint.s will execute Main firstly.
 void Main(void) {
     DWORD i;
+    DWORD eax_val, ebx_val, ecx_val, edx_val;
+    char vendorStr[VENDOR_STR_LEN + 1];
     int posY;
 
     posY = 3;
@@ -20,11 +24,11 @@ void Main(void) {
     posY++;
     kPrintString(0, posY, "Minimum memory size check...................[    ]");
     if(!kIsMemoryEnough()) {
-        kPrintString(PRINT_PASS_POS, posY, "FAIL");
+        kPrintString(PRINT_BLANK_POS, posY, "FAIL");
         kPrintString(0, posY + 1, "Not enough memory, MINT64 OS requires over 64MBs memory");
         while(TRUE);
     }
-    kPrintString(PRINT_PASS_POS, posY, "PASS");
+    kPrintString(PRINT_BLANK_POS, posY, "PASS");
 
     // 1. PC의 장착된 물리 메모리가 64MB 이상인지 확인
     // - 커널이 올라가는 메모리 주소는 0x10000, 만약 1MB 이하의 어드레스 중에 비디오 메모리가 위치한 
@@ -40,17 +44,41 @@ void Main(void) {
     posY++;
     kPrintString(0, posY, "IA-32e Kernel area initialize...............[    ]");
     if(!kInitializeKernel64Area()) {
-        kPrintString(PRINT_PASS_POS, posY, "FAIL");
+        kPrintString(PRINT_BLANK_POS, posY, "FAIL");
         kPrintString(0, posY + 1, "Kernel area initialization failed");
         while(TRUE);
     }
-    kPrintString(PRINT_PASS_POS, posY, "PASS");
+    kPrintString(PRINT_BLANK_POS, posY, "PASS");
 
     // IA-32e 모드 커널을 위한 페이지 테이블 생성
     posY++;
     kPrintString(0, posY, "IA-32e Page Tables Initialize...............[    ]");
     kInitializePageTables();
-    kPrintString(PRINT_PASS_POS, posY, "PASS");
+    kPrintString(PRINT_BLANK_POS, posY, "PASS");
+
+    // 프로세서 제조사 정보 읽기
+    kReadCPUID(0x00000000, &eax_val, &ebx_val, &ecx_val, &edx_val);
+    *(DWORD *)vendorStr = ebx_val;
+    *((DWORD *)vendorStr + 1) = ecx_val;
+    *((DWORD *)vendorStr + 2) = edx_val;
+
+    posY++;
+    kPrintString(0, posY, "Processor Vendor String.....................[            ]");
+    kPrintString(PRINT_BLANK_POS, posY, vendorStr);
+
+    // 64비트 지원 유무 확인
+    kReadCPUID(0x80000001, &eax_val, &ebx_val, &ecx_val, &edx_val);
+
+    posY++;
+    kPrintString(0, posY, "64bit Mode Support Check....................[    ]");
+    if( edx_val & (1 << 29))
+        kPrintString(PRINT_BLANK_POS, posY, "PASS");
+    else {
+        kPrintString(PRINT_BLANK_POS, posY, "FAIL");
+        kPrintString(0, posY + 1, "This processor doesn't support 64bit mode");
+        kPrintString(PRINT_BLANK_POS, posY, "PASS");
+        while(TRUE);
+    }
 
     while(TRUE);
 }

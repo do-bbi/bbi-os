@@ -1,2 +1,2 @@
 Page.o: ../src/Page.c ../src/Page.h ../src/Types.h
-Main.o: ../src/Main.c ../src/Types.h ../src/Page.h
+Main.o: ../src/Main.c ../src/Types.h ../src/Page.h ../src/ModeSwitch.h
