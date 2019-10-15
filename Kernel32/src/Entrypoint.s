@@ -189,7 +189,7 @@ GDT:
         db 0x00         ; Base Segment Address[31:24]
 
     ; 보호 모드 커널용 데이터 세그먼트 디스크립터
-    PROTECT_CODE_DESC:
+    PROTECT_DATA_DESC:
         dw 0xFFFF       ; Limit [15:0]
         dw 0x0000       ; Base [15:0]
         db 0x00         ; Base [23:16]

@@ -42,3 +42,33 @@ kReadCPUID:
     pop ebp
 
     ret                         ; 함수를 호출한 코드의 위치로 복귀 
+
+; IA-32e 모드 전환 및 64bit 커널 수행
+; PARAM: NONE
+kSwitchAndExecute64bitKernel:
+    ; CR4 컨트롤 레지스터의 PAE 비트를 1로 설정
+    mov eax, cr4    ; CR4 컨트롤 레지스터의 값을 EAX 레지스터에 저장
+    or eax, 0x20    ; PAE[5]=1
+    mov cr4, eax    ; PAE[5]=1 이 된 EAX 레지스터 값을 CR4 컨트롤 레지스터에 저장
+    
+    ; CR3 컨트롤 레지스터로 PML4 Table 주소와 캐시 활성화
+    mov eax, 0x100000   ; EAX 레지스터에 PML4 Table의 주소인 0x100000를 저장
+    mov cr3, eax        ; PML4 Table의 주소(0x100000)이 담긴 EAX 레지스터 값을 CR3 컨트롤 레지스터에 저장
+
+    ; IA32_EFER(IA32 Extended Feature Enable Register)의 LME 값을 1로 설정하여 IA-32e 모드를 활성화
+    mov eax, 0xC0000080 ; IA32_EFER MSR(Model Specific Register)의 주소를 EAX 레지스터에 저장
+    rdmsr               ; IA32_EFER을 위한 특수 명령어 rdmsr을 이용해 MSR 읽기 -> EAX 레지스터
+
+    or eax, 0x0100      ; EAX 레지스터에 저장된 IA32_EFER MSR 값의 하위 32bit 중 LME[8]=1
+    wrmsr               ; IA32_EFER을 위한 특수 명령어 wrmsr을 이용해 MSR 쓰기 <- EAX 레지스터
+
+    ; CR0 레지스터의 NW[29](Not Write-through)와 CD[30](Cache Disabled)는 0, PG[31](Paging)는 1로 설정해 캐시와 페이징을 활성화
+    mov eax, cr0        ; EAX 레지스터에 CR0 컨트롤 레지스터 값을 저장
+    or eax, 0xE0000000  ; NW[29]=1, CD[29]=1, PG[29]=1
+    xor eax, 0x60000000 ; NW[29]^1=0, CD[29]^1=0, PG[29]^0=1
+    mov cr0, eax        ; CR0 컨트롤 레지스터에 EAX 레지스터의 값을 저장
+
+    jmp 0x08:0x200000   ; CS 세그먼트 셀렉터를 IA-32e 모드용 코드 세그먼트 디스크립터로 교체하고, 0x200000 으로 Jump
+
+    ; Follow code won't run
+    jmp $

@@ -1,6 +1,6 @@
 MAKE=make
 
-all: BootLoader.bin Kernel32.bin Disk.img
+all: BootLoader.bin Kernel32.bin Kernel64.bin Disk.img
 
 BootLoader.bin:
 	@echo
@@ -24,7 +24,18 @@ Kernel32.bin:
 	@echo ====================  Build Complete  ====================
 	@echo
 
-Disk.img: BootLoader/BootLoader.bin Kernel32/Kernel32.bin
+Kernel64.bin:
+	@echo
+	@echo ====================  Build Kernel64 $(MAKE) ====================
+	@echo
+
+	$(MAKE) -C Kernel64
+
+	@echo
+	@echo ====================  Build Complete  ====================
+	@echo
+
+Disk.img: BootLoader/BootLoader.bin Kernel32/Kernel32.bin Kernel64/Kernel64.bin
 	@echo
 	@echo ==================== Build DiskImg ====================
 	@echo
@@ -39,4 +50,5 @@ Disk.img: BootLoader/BootLoader.bin Kernel32/Kernel32.bin
 clean:
 	$(MAKE) -C BootLoader clean
 	$(MAKE) -C Kernel32 clean
+	$(MAKE) -C Kernel64 clean
 	rm -f Disk.img

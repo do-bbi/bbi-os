@@ -1,5 +1,6 @@
 MAKE=make
-NASM32 = nasm
+NASM = nasm
+NASM32 = nasm -f elf32 
 GCC32 = x86_64-pc-linux-gcc -c -m32 -ffreestanding
 LD32 = x86_64-pc-linux-ld -melf_i386 -T ../../elf_i386.x -nostdlib -e Main -Ttext 0x10200
 OBJCOPY32 = x86_64-pc-linux-objcopy -j .text -j .data -j .rodata -j .bss -S -O binary
@@ -13,7 +14,7 @@ prepare:
 	mkdir -p $(OBJDIR)
 
 $(OBJDIR)/EntryPoint.bin: $(SRCDIR)/EntryPoint.s
-	$(NASM32) -o $@ $<
+	$(NASM) -o $@ $<
 
 dep:
 	@echo === Make Dependency File ===
@@ -43,7 +44,7 @@ ASMOBJ = $(notdir $(patsubst %.asm, %.o, $(ASM)))
 	$(GCC32) -c $<
 
 %.o : ../$(SRCDIR)/%.asm
-	$(NASM32) -f elf32 -o $@ $<
+	$(NASM32) -o $@ $<
 
 InternalDependency:
 	$(GCC32) -MM $(SRC) > Dependency.dep

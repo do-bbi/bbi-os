@@ -2,6 +2,8 @@
 #include "Page.h"
 #include "ModeSwitch.h"
 
+#define VIDEO_MEM_ADDR  (0xB8000)
+
 #define PRINT_BLANK_POS  (45)
 #define VENDOR_STR_LEN  (12)
 
@@ -80,11 +82,16 @@ void Main(void) {
         while(TRUE);
     }
 
+    posY++;
+    // IA-32e 모드 전환
+    kPrintString(0, posY, "Switch to IA-32e Mode");
+    // kSwitchAndExecute64bitKernel();
+
     while(TRUE);
 }
 
 void kPrintString(int iX, int iY, const char *pcString) {
-    CHARACTER *pstScreen = (CHARACTER *)0xB8000;    // Video Memory Addr
+    CHARACTER *pstScreen = (CHARACTER *)VIDEO_MEM_ADDR;    // Video Memory Addr
     int i;
 
     pstScreen += (iY * 80) + iX;

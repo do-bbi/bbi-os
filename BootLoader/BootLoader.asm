@@ -6,8 +6,12 @@ SECTION .text
 jmp 0x07C0:START						; Copy "0x07C0" to CS segment reg
 										; Copy "Address of START Label" to IP reg
 
-TOTALSECTORCOUNT:
-	dw 0x05; 0x02						; Size of BBI OS except bootloader
+TOTAL_SECTOR_COUNT:
+	dw 0x05;							; Size of BBI OS except bootloader
+										; Maximum is 1152 sectors (0x90000 bytes)
+
+KERNEL32_SECTOR_COUNT:
+	dw 0x02;							; Size of BBI OS except bootloader
 										; Maximum is 1152 sectors (0x90000 bytes)
 
 ; Global function
@@ -67,7 +71,7 @@ RESETDISK:
 	mov es, si							; Set ES reg to value of si
 	mov bx, 0x0000						; Set BX reg to 0x0000, to make Dst addr 0x1000:0000
 
-	mov di, word[TOTALSECTORCOUNT]		; Set DI reg to number of sectors for coping OS image
+	mov di, word[TOTAL_SECTOR_COUNT]	; Set DI reg to number of sectors for coping OS image
 
 READDATA:
 	cmp di, 0							; Check reading OS image is finished
