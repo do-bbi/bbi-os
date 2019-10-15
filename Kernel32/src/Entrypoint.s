@@ -54,12 +54,15 @@ START:
 	mov cr0, eax						; Enter protect mode by set CR0
 	
     ; Replace Kernel Code Segment whose base is 0x00
-    ; [CS Segment Selector]=0x08, EIP=(PROTECTEDMODE - $$ + 0x10000)
-    jmp dword 0x08: (PROTECTEDMODE - $$ + 0x10000)
+    ; [CS Segment Selector]=0x18, EIP=(PROTECTEDMODE - $$ + 0x10000) -> 보호 모드 커널용 코드 세그먼트 디스크립터를 0x18로 이동
+    jmp dword 0x18: (PROTECTEDMODE - $$ + 0x10000)
+    ; PROTECTEDMODE Label에서 현재 세그먼트의 시작 주소를 뺐으므로, .text 섹션으로 부터의 Offset을 의미
+    ; 실제 보호 모드 엔트리 포인트는 0x10000 주소에 Load 되므로 PROTECTEDMODE - $$에 0x10000을 더하면
+    ; PROTECTMODE Label의 절대 주소를 구할 수 있음
 
 [BITS 32]
 PROTECTEDMODE:
-    mov ax, 0x10
+    mov ax, 0x20    ; 보호 모드 커널용 데이터 세그먼트 디스크립터를 0x20으로 이동
     mov ds, ax
     mov es, ax
     mov fs, ax
@@ -78,7 +81,7 @@ PROTECTEDMODE:
 
     ; jmp $
     ; [CS Segment Selector]=0x08, EIP=0x10200 
-    jmp dword 0x08: 0x10200 ; C 언어 커널이 존재하는 0x10200 어드레스로 이동하여 C 언어 커널 수행
+    jmp dword 0x18: 0x10200 ; C 언어 커널이 존재하는 0x10200 어드레스로 이동하여 C 언어 커널 수행
 
 ; Function to print message 
 ; Param: Coord x, Coord y, String s
@@ -146,10 +149,11 @@ dw 0x0000
 
 GDTR:
     dw GDTEND - GDT - 1
-    dd (GDT - $$ + 0x10000)
+    dd (GDT - $$ + 0x10000) 
 
 GDT:
-    NULLDESCRIPTOR:
+    ; NULL Descriptor, 반드시 0으로 초기화
+    NULL_DESC:
         dw 0x0000
         dw 0x0000
         db 0x00
@@ -157,21 +161,41 @@ GDT:
         db 0x00
         db 0x00
 
-    CODEDESCRIPTOR:
-        dw 0xFFFF   ; Limit[15:0]
-        dw 0x0000   ; Base [15:0]
-        db 0x00     ; Base [23:16]
-        db 0x9A     ; P=1, DPL=0, Code Segment, Execute/Read
-        db 0xCF     ; G=1, D=1, L=0, AVL=0, Limit[19:16]
-        db 0x00     ; Base[31:24]
+    ; IA-32e 모드 커널용 코드 세그먼트 디스크립터
+    IA_32e_CODE_DESC:
+        dw 0xFFFF       ; Limit [15:0]
+        dw 0x0000       ; Base [15:0]
+        db 0x00         ; Base [23:16]
+        db 0x9A         ; P[15]=1 | DPL[14:13]=00 | S[12]=? | Type[12]="Code Segment" | Execute/Read[11:8]
+        db 0xAF         ; G[23]=1 | D[22]=0 | L[21]=1 | AVL[20]=? | Limit[19:16]
+        db 0x00         ; Base Segment Address[31:24]
 
-    DATADESCRIPTOR:
-        dw 0xFFFF   ; Limit[15:0]
-        dw 0x0000   ; Base [15:0]
-        db 0x00     ; Base [23:16]
-        db 0x92     ; P=1, DPL=0, Data Segment, Read/Write
-        db 0xCF     ; G=1, D=1, L=0, AVL=0, Limit[19:16]
-        db 0x00     ; Base[31:24]
+    ; IA-32e 모드 커널용 데이터 세그먼트 디스크립터
+    IA_32e_DATA_DESC:
+        dw 0xFFFF       ; Limit [15:0]
+        dw 0x0000       ; Base [15:0]
+        db 0x00         ; Base [23:16]
+        db 0x92         ; P[15]=1 | DPL[14:13]=00 | S[12]=? | Type[12]="Data Segment" | Read/Write[11:8]
+        db 0xAF         ; G[23]=1 | D[22]=0 | L[21]=1 | AVL[20]=? | Limit[19:16]
+        db 0x00         ; Base Segment Address[31:24]
+
+    ; 보호 모드 커널용 코드 세그먼트 디스크립터
+    PROTECT_CODE_DESC:
+        dw 0xFFFF       ; Limit [15:0]
+        dw 0x0000       ; Base [15:0]
+        db 0x00         ; Base [23:16]
+        db 0x9A         ; P[15]=1 | DPL[14:13]=00 | S[12]=? | Type[12]="Code Segment" | Read/Write[11:8]
+        db 0xCF         ; G[23]=1 | D[22]=1 | L[21]=0 | AVL[20]=? | Limit[19:16]
+        db 0x00         ; Base Segment Address[31:24]
+
+    ; 보호 모드 커널용 데이터 세그먼트 디스크립터
+    PROTECT_CODE_DESC:
+        dw 0xFFFF       ; Limit [15:0]
+        dw 0x0000       ; Base [15:0]
+        db 0x00         ; Base [23:16]
+        db 0x92         ; P[15]=1 | DPL[14:13]=00 | S[12]=? | Type[12]="Data" Segment" | Read/Write[11:8]
+        db 0xCF         ; G[23]=1 | D[22]=1 | L[21]=0 | AVL[20]=? | Limit[19:16]
+        db 0x00         ; Base Segment Address[31:24]
 
 GDTEND:
 
