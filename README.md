@@ -1,6 +1,9 @@
 # bbi-os
 64bit Multicore OS using Intel x86_64 
 
+## bbi-os Memory Map
+![BBI_OS_MMAP](imgs/BBI_OS_MMAP.png)
+
 ## Welcome to bbi-os
 bbi-os is derived OS from [MINT64 OS](http://www.mint64os.pe.kr/) and written by C & x86_64 assembly languages 
 

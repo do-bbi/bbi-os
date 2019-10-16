@@ -3,14 +3,20 @@
 #include "ModeSwitch.h"
 
 #define VIDEO_MEM_ADDR  (0xB8000)
+#define KERNEL32_AREA   (0x10000)
+#define KERNEL64_AREA   (0x200000)
+#define BOOTLOADER_AREA (0x7C00)
+#define SIZEOF_JUMP_OP  (5)         // EA 00 ?? C0 07 = jmp 0x07C0:START = 5 Bytes Op(Far/Near jump)
 
-#define PRINT_BLANK_POS  (45)
+#define PRINT_BLANK_POS (45)
 #define VENDOR_STR_LEN  (12)
+#define SIZE_OF_SECTOR  (512)
 
 void kPrintString(int iX, int iY, const char* pcString);
 
 BOOL kInitializeKernel64Area(void);
 BOOL kIsMemoryEnough(void);
+void kCopyImageToKernel64Area(void);
 
 // [Main Address] = 0x10200
 // EntryPoint.s will execute Main firstly.
@@ -21,7 +27,7 @@ void Main(void) {
     int posY;
 
     posY = 3;
-    kPrintString(0, posY, "C language kernel start!....................[PASS]");
+    kPrintString(0, posY, "Protected mode C language kernel start!....................[PASS]");
 
     posY++;
     kPrintString(0, posY, "Minimum memory size check...................[    ]");
@@ -83,11 +89,15 @@ void Main(void) {
     }
 
     posY++;
+    // Copy IA-32e Image to KERNEL64_AREA
+    kPrintString(0, posY, "Copy IA-32e Kernel Image to KERNEL64_AREA...[    ]");
+    kCopyImageToKernel64Area();
+    kPrintString(PRINT_BLANK_POS, posY, "PASS");
+
+    posY++;
     // IA-32e 모드 전환
     kPrintString(0, posY, "Switch to IA-32e Mode");
-    // kSwitchAndExecute64bitKernel();
-
-    while(TRUE);
+    kSwitchAndExecute64bitKernel();
 }
 
 void kPrintString(int iX, int iY, const char *pcString) {
@@ -141,4 +151,24 @@ BOOL kIsMemoryEnough(void) {
     }
 
     return TRUE;
+}
+
+// IA-32e 모드 커널을 KERNEL64_AREA로 복사
+void kCopyImageToKernel64Area(void) {
+    WORD kernel32SectorCount, totalKernelSectorCount;
+    DWORD *pSrc, *pDst;
+
+    int i;
+    int kernel64Size;
+
+    totalKernelSectorCount = *((WORD *)(BOOTLOADER_AREA + SIZEOF_JUMP_OP));
+    kernel32SectorCount = *((WORD *)(BOOTLOADER_AREA + SIZEOF_JUMP_OP + sizeof(WORD)));
+
+    pSrc = (DWORD *)(KERNEL32_AREA + kernel32SectorCount * SIZE_OF_SECTOR);
+    pDst = (DWORD *)KERNEL64_AREA;
+
+    // IA-32e 모드 커널 섹터 크기만큼 복사
+    kernel64Size = SIZE_OF_SECTOR * (totalKernelSectorCount - kernel32SectorCount) / sizeof(DWORD);
+    for(i = 0; i < kernel64Size; ++i)
+        *pDst++ = *pSrc++;
 }

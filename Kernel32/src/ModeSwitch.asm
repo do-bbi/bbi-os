@@ -1,10 +1,13 @@
+; 이 코드는 32bit 모드로 동작
+[BITS 32]
+
 ; C Code에서 호출할 수 있도록 Export
-global kReadCPUID
+global kReadCPUID, kSwitchAndExecute64bitKernel
 
 SECTION .text
 
 ; CPUID를 반환하는 함수
-; Function Parameter = DWORD eax_val, DWORD *pEAX, *pEBX, *pECX, *pEDX
+; Function Parameter(DWORD eax_val, DWORD *pEAX, DWORD *pEBX, DWORD *pECX, DWORD *pEDX)
 kReadCPUID:
     push ebp        ; EBP(Base Pointer Register) 값을 스택에 Push
     mov ebp, esp    ; EBP에 ESP(Stack Pointer Register) 값을 Set
@@ -44,7 +47,7 @@ kReadCPUID:
     ret                         ; 함수를 호출한 코드의 위치로 복귀 
 
 ; IA-32e 모드 전환 및 64bit 커널 수행
-; PARAM: NONE
+; Function Parameter(void)
 kSwitchAndExecute64bitKernel:
     ; CR4 컨트롤 레지스터의 PAE 비트를 1로 설정
     mov eax, cr4    ; CR4 컨트롤 레지스터의 값을 EAX 레지스터에 저장
