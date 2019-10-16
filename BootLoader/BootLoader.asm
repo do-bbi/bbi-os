@@ -7,11 +7,12 @@ jmp 0x07C0:START						; Copy "0x07C0" to CS segment reg
 										; Copy "Address of START Label" to IP reg
 
 TOTAL_SECTOR_COUNT:
-	dw 0x05;							; Count of BBI OS Protected Mode Kernel(Except Bootloader)
+	dw 0x07;							; Count of BBI OS Protected Mode Kernel(Except Bootloader)
 										; Maximum number of sectors is (0xA0000 - 0x10000 = 0x90000) / 512 = 1152 sectors
-
 KERNEL32_SECTOR_COUNT:
-	dw 0x05;							; Count of BBI OS IA-32e Mode Kernel Sectors
+	dw 0x05;							
+	
+										; Count of BBI OS IA-32e Mode Kernel Sectors
 										; Maximum number of sectors is (0x600000 - 0x200000 = 0x400000) / 512 = 8192 sectors
 
 ; Global function

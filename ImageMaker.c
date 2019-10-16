@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     int kernel64SectorCount;
     int srcSize;
 
-    if(argc < 3) {
+    if(argc < 4) {
         fprintf(stderr, "[ERROR] ImageMaker.exe BootLoader.bin Kernel32.bin Kernel64.bin\n");
         exit(-1);
     }
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
 #else
     if((srcFD = open(argv[3], O_RDONLY | O_BINARY)) == -1) {
 #endif
-        fprintf(stderr, "[ERROR] %s open failed\n", argv[2]);
+        fprintf(stderr, "[ERROR] %s open failed\n", argv[3]);
         exit(-1);
     }
 
@@ -158,10 +158,10 @@ void WriteKernelInformation(int dstFD, int kernelTotalSectorCount, int kernel32S
     }
 
     data = (unsigned short)kernelTotalSectorCount;
-    write(dstFD, data, 2);
+    write(dstFD, &data, 2);
 
     data = (unsigned short)kernel32SectorCount;
-    write(dstFD, data, 2);
+    write(dstFD, &data, 2);
 
     printf("[INFO] Total sector count except boot loader [%d]\n", kernelTotalSectorCount);
     printf("[INFO] Kernel sector count of protected mode [%d]\n", kernel32SectorCount);

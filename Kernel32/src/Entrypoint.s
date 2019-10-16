@@ -166,8 +166,8 @@ GDT:
         dw 0xFFFF       ; Limit [15:0]
         dw 0x0000       ; Base [15:0]
         db 0x00         ; Base [23:16]
-        db 0x9A         ; P[15]=1 | DPL[14:13]=00 | S[12]=? | Type[12]="Code Segment" | Execute/Read[11:8]
-        db 0xAF         ; G[23]=1 | D[22]=0 | L[21]=1 | AVL[20]=? | Limit[19:16]
+        db 0x9A         ; P[15]=1 | DPL[14:13]=00 | S[12]=1 | Type[11:8]="Code Segment | Execute/Read"
+        db 0xAF         ; G[23]=1 | D[22]=0 | L[21]=1 | AVL[20]=0 | Limit[19:16]
         db 0x00         ; Base Segment Address[31:24]
 
     ; IA-32e 모드 커널용 데이터 세그먼트 디스크립터
@@ -175,8 +175,8 @@ GDT:
         dw 0xFFFF       ; Limit [15:0]
         dw 0x0000       ; Base [15:0]
         db 0x00         ; Base [23:16]
-        db 0x92         ; P[15]=1 | DPL[14:13]=00 | S[12]=? | Type[12]="Data Segment" | Read/Write[11:8]
-        db 0xAF         ; G[23]=1 | D[22]=0 | L[21]=1 | AVL[20]=? | Limit[19:16]
+        db 0x92         ; P[15]=1 | DPL[14:13]=00 | S[12]=1 | Type[11:8]="Data Segment | Read/Write"
+        db 0xAF         ; G[23]=1 | B[22]=0 | L[21]=1 | AVL[20]=0 | Limit[19:16]
         db 0x00         ; Base Segment Address[31:24]
 
     ; 보호 모드 커널용 코드 세그먼트 디스크립터
@@ -184,8 +184,8 @@ GDT:
         dw 0xFFFF       ; Limit [15:0]
         dw 0x0000       ; Base [15:0]
         db 0x00         ; Base [23:16]
-        db 0x9A         ; P[15]=1 | DPL[14:13]=00 | S[12]=? | Type[12]="Code Segment" | Read/Write[11:8]
-        db 0xCF         ; G[23]=1 | D[22]=1 | L[21]=0 | AVL[20]=? | Limit[19:16]
+        db 0x9A         ; P[15]=1 | DPL[14:13]=00 | S[12]=1 | Type[11:8]="Code Segment | Execute/Read"
+        db 0xCF         ; G[23]=1 | D[22]=1 | L[21]=0 | AVL[20]=0 | Limit[19:16]
         db 0x00         ; Base Segment Address[31:24]
 
     ; 보호 모드 커널용 데이터 세그먼트 디스크립터
@@ -193,8 +193,8 @@ GDT:
         dw 0xFFFF       ; Limit [15:0]
         dw 0x0000       ; Base [15:0]
         db 0x00         ; Base [23:16]
-        db 0x92         ; P[15]=1 | DPL[14:13]=00 | S[12]=? | Type[12]="Data" Segment" | Read/Write[11:8]
-        db 0xCF         ; G[23]=1 | D[22]=1 | L[21]=0 | AVL[20]=? | Limit[19:16]
+        db 0x92         ; P[15]=1 | DPL[14:13]=00 | S[12]=? | Type[11:8]="Data Segment | Read/Write"
+        db 0xCF         ; G[23]=1 | B[22]=1 | L[21]=0 | AVL[20]=0 | Limit[19:16]
         db 0x00         ; Base Segment Address[31:24]
 
 GDTEND:

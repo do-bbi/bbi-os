@@ -67,8 +67,8 @@ void Main(void) {
     // 프로세서 제조사 정보 읽기
     kReadCPUID(0x00000000, &eax_val, &ebx_val, &ecx_val, &edx_val);
     *(DWORD *)vendorStr = ebx_val;
-    *((DWORD *)vendorStr + 1) = ecx_val;
-    *((DWORD *)vendorStr + 2) = edx_val;
+    *((DWORD *)vendorStr + 1) = edx_val;
+    *((DWORD *)vendorStr + 2) = ecx_val;
 
     posY++;
     kPrintString(0, posY, "Processor Vendor String.....................[            ]");

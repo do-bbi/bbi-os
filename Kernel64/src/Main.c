@@ -3,13 +3,12 @@
 #define VIDEO_MEM_ADDR  (0xB8000)
 
 #define PRINT_BLANK_POS  (45)
-#define VENDOR_STR_LEN  (12)
 
 void kPrintString(int iX, int iY, const char* pcString);
 
 // C 언어 커널
 void Main(void) {
-    int posY = 10;
+    int posY = 11;
     
     kPrintString(0, posY, "Switch to IA-32e Mode Success");
     posY++;

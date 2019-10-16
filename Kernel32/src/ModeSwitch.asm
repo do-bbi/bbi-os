@@ -59,7 +59,7 @@ kSwitchAndExecute64bitKernel:
     mov cr3, eax        ; PML4 Table의 주소(0x100000)이 담긴 EAX 레지스터 값을 CR3 컨트롤 레지스터에 저장
 
     ; IA32_EFER(IA32 Extended Feature Enable Register)의 LME 값을 1로 설정하여 IA-32e 모드를 활성화
-    mov eax, 0xC0000080 ; IA32_EFER MSR(Model Specific Register)의 주소를 EAX 레지스터에 저장
+    mov ecx, 0xC0000080 ; IA32_EFER MSR(Model Specific Register)의 주소를 ECX 레지스터에 저장
     rdmsr               ; IA32_EFER을 위한 특수 명령어 rdmsr을 이용해 MSR 읽기 -> EAX 레지스터
 
     or eax, 0x0100      ; EAX 레지스터에 저장된 IA32_EFER MSR 값의 하위 32bit 중 LME[8]=1

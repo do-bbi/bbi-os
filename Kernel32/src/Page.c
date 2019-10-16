@@ -29,7 +29,7 @@ void kInitializePageTables(void) {
     pPDPTEntry = (PDPTENTRY *)PAGE_DIR_PTR_TABLE_ADDR;
 
     for(i = 0; i < DIR_PTR_ENTRY_NUM; ++i)
-        kSetPageEntryData(&(pPDPTEntry[i]), 0, PAGE_DIR_TABLE_ADDR + (i * PAGE_TABLESIZE), PAGE_DEFAULT_SIZE, 0);
+        kSetPageEntryData(&(pPDPTEntry[i]), 0, PAGE_DIR_TABLE_ADDR + (i * PAGE_TABLESIZE), PAGE_FLAGS_DEF, 0);
     
     for(i = DIR_PTR_ENTRY_NUM; i < PAGE_MAXENTRYCOUNT; ++i)
         kSetPageEntryData(&(pPDPTEntry[i]), 0, 0, 0, 0);
