@@ -8,9 +8,8 @@ void kPrintString(int iX, int iY, const char* pcString);
 
 // C 언어 커널
 void Main(void) {
-    int posY = 11;
-    
-    kPrintString(0, posY, "Switch to IA-32e Mode Success");
+    int posY = 10;
+    kPrintString(PRINT_BLANK_POS, posY, "PASS");
     posY++;
     kPrintString(0, posY, "IA-32e C Language Kernel Start");
 }

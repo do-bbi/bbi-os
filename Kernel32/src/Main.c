@@ -27,7 +27,8 @@ void Main(void) {
     int posY;
 
     posY = 3;
-    kPrintString(0, posY, "Protected mode C language kernel start!....................[PASS]");
+    kPrintString(0, posY, "Protected mode C language kernel start!.....[    ]");
+    kPrintString(PRINT_BLANK_POS, posY, "PASS");
 
     posY++;
     kPrintString(0, posY, "Minimum memory size check...................[    ]");
@@ -69,10 +70,11 @@ void Main(void) {
     *(DWORD *)vendorStr = ebx_val;
     *((DWORD *)vendorStr + 1) = edx_val;
     *((DWORD *)vendorStr + 2) = ecx_val;
+    vendorStr[VENDOR_STR_LEN] = '\0';
 
     posY++;
-    kPrintString(0, posY, "Processor Vendor String.....................[            ]");
-    kPrintString(PRINT_BLANK_POS, posY, vendorStr);
+    kPrintString(0, posY, "Processor Vendor String.............[            ]");
+    kPrintString(PRINT_BLANK_POS - 8, posY, vendorStr);
 
     // 64비트 지원 유무 확인
     kReadCPUID(0x80000001, &eax_val, &ebx_val, &ecx_val, &edx_val);
@@ -84,7 +86,6 @@ void Main(void) {
     else {
         kPrintString(PRINT_BLANK_POS, posY, "FAIL");
         kPrintString(0, posY + 1, "This processor doesn't support 64bit mode");
-        kPrintString(PRINT_BLANK_POS, posY, "PASS");
         while(TRUE);
     }
 
@@ -96,8 +97,10 @@ void Main(void) {
 
     posY++;
     // IA-32e 모드 전환
-    kPrintString(0, posY, "Switch to IA-32e Mode");
+    kPrintString(0, posY, "Switch to IA-32e Mode.......................[    ]");
     kSwitchAndExecute64bitKernel();
+
+    while(TRUE);
 }
 
 void kPrintString(int iX, int iY, const char *pcString) {
@@ -161,8 +164,8 @@ void kCopyImageToKernel64Area(void) {
     int i;
     int kernel64Size;
 
-    totalKernelSectorCount = *((WORD *)(BOOTLOADER_AREA + SIZEOF_JUMP_OP));
-    kernel32SectorCount = *((WORD *)(BOOTLOADER_AREA + SIZEOF_JUMP_OP + sizeof(WORD)));
+    totalKernelSectorCount = *((WORD *)(BOOTLOADER_AREA + SIZEOF_JUMP_OP));             // 0x7C05
+    kernel32SectorCount = *((WORD *)(BOOTLOADER_AREA + SIZEOF_JUMP_OP + sizeof(WORD))); // 0x7C07
 
     pSrc = (DWORD *)(KERNEL32_AREA + kernel32SectorCount * SIZE_OF_SECTOR);
     pDst = (DWORD *)KERNEL64_AREA;

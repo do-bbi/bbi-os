@@ -21,7 +21,7 @@ void kInitializePageTables(void) {
     kSetPageEntryData(&(pPML4TEntry[0]), 0x00, PAGE_DIR_PTR_TABLE_ADDR, PAGE_FLAGS_DEF, 0);
 
     for(i = 1; i < PAGE_MAXENTRYCOUNT; ++i)
-        kSetPageEntryData(&pPML4TEntry[i], 0, 0, 0, 0);
+        kSetPageEntryData(&(pPML4TEntry[i]), 0, 0, 0, 0);
 
     // PDPT(Page Directory Pointer Table) 생성
     // 하나의 PDPT로 512GB 까지 Mapping이 가능하므로, 하나의 PDPT만 생성하는걸로 충분

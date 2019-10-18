@@ -1,4 +1,4 @@
-MAKE=make
+MAKE = make
 NASM = nasm
 NASM32 = nasm -f elf32 
 GCC32 = x86_64-pc-linux-gcc -c -m32 -ffreestanding
