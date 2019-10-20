@@ -1,6 +1,18 @@
-MAKE=make
+GCC = gcc
+MAKE = make
 
-all: BootLoader.bin Kernel32.bin Kernel64.bin Disk.img
+all: clean ImageMaker BootLoader.bin Kernel32.bin Kernel64.bin Disk.img
+
+ImageMaker:
+	@echo
+	@echo ==================== Build Imagemaker ====================
+	@echo
+
+	$(GCC) ImageMaker.c -o ImageMaker
+
+	@echo
+	@echo ====================  Build Complete  ====================
+	@echo
 
 BootLoader.bin:
 	@echo
@@ -11,7 +23,7 @@ BootLoader.bin:
 
 	@echo
 	@echo ====================  Build Complete  ====================
-	@echo $(MAKE)
+	@echo
 
 Kernel32.bin:
 	@echo
@@ -48,6 +60,7 @@ Disk.img: BootLoader/BootLoader.bin Kernel32/Kernel32.bin Kernel64/Kernel64.bin
 	@echo
 
 clean:
+	rm -f ImageMaker
 	$(MAKE) -C BootLoader clean
 	$(MAKE) -C Kernel32 clean
 	$(MAKE) -C Kernel64 clean
