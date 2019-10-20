@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
     /*
         부트 로더 파일을 열어서 모든 내용을 디스크 이미지 파일로 복사
     */
-    printf("[INFO] Copy BootLoader to image file\n");
+    printf("[INFO] Copy %s to image file\n", argv[1]);
 #ifdef __APPLE__
     if( (srcFD = open(argv[1], O_RDONLY)) == -1) {
 #else
@@ -64,12 +64,12 @@ int main(int argc, char *argv[]) {
     close(srcFD);
 
     bootLoaderSize = AdjustInSectorSize(dstFD, srcSize);
-    printf("[INFO] %s size = %d Bytes / Sector count = %d Bytes\n", argv[1], srcSize, bootLoaderSize);
+    printf("[INFO] %s size = %d Bytes / Sector count = %d\n", argv[1], srcSize, bootLoaderSize);
 
     /*
         32bit 커널 파일을 열어서 모든 내용을 디스크 이미지 파일로 복사
     */
-    printf("[INFO] Copy protected mode kernel to image file\n");
+    printf("[INFO] Copy %s to image file\n", argv[2]);
 #ifdef __APPLE__
     if((srcFD = open(argv[2], O_RDONLY)) == -1) {
 #else
@@ -84,12 +84,12 @@ int main(int argc, char *argv[]) {
 
     // 파일 크기를 섹터 크기인 512 바이트로 맞추기 위해 나머지 부분을 0x00으로 채움
     kernel32SectorCount = AdjustInSectorSize(dstFD, srcSize);
-    printf("[INFO] %s size = %d Bytes / Sector count = %d Bytes\n", argv[2], srcSize, kernel32SectorCount);
+    printf("[INFO] %s size = %d Bytes / Sector count = %d\n", argv[2], srcSize, kernel32SectorCount);
 
     /*
         64bit 커널 파일을 열어서 모든 내용을 디스크 이미지 파일로 복사
     */
-    printf("[INFO] Copy IA-32e mode kernel to image file\n");
+    printf("[INFO] Copy %s to image file\n", argv[3]);
 #ifdef __APPLE__
     if((srcFD = open(argv[3], O_RDONLY)) == -1) {
 #else
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
 
     // 파일 크기를 섹터 크기인 512 바이트로 맞추기 위해 나머지 부분을 0x00으로 채움
     kernel64SectorCount = AdjustInSectorSize(dstFD, srcSize);
-    printf("[INFO] %s size = %d Bytes / Sector count = %d Bytes\n", argv[3], srcSize, kernel64SectorCount);
+    printf("[INFO] %s size = %d Bytes / Sector count = %d\n", argv[3], srcSize, kernel64SectorCount);
 
     /*
         디스크 이미지에 커널 정보 갱신
