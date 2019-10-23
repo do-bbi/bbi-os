@@ -60,3 +60,65 @@ BYTE kGetKeyboardScanCode(void) {
 
     return kInPortByte(0x60);
 }
+
+// 키보드 상태 LED ON/OFF
+BOOL kChangeKeyboardLED(BOOL isCapsLockOn, BOOL isNumLockOn, BOOL isScrollLockOn) {
+    int i, j;
+
+    for(i = 0; i < 0xFFFF; ++i) {
+        if(!kIsInputBufferFull())
+            break;
+    }
+
+    // 출력 버퍼(Port 0x60)로 LED 상태 변경 명령(0xED) 전송
+    kOutPortByte(0x60, 0xED);
+    for(i = 0; i < 0xFFFF; ++i) {
+        if(!kIsInputBufferFull())
+            break;
+    }
+    
+    // ACK 수신 대기
+    for(j = 0; j < 100; ++j) {
+        // 0xFFFF 번 루프를 수행할 시간이면 충분히 커맨드 전송이 끝남
+        // 0xFFFF 번 루프를 수행 이 후에도 입력 버퍼(포트 0x60)이 쓰여있지 않으면 무시하고 읽음
+        for(i = 0; i < 0xFFFF; ++i) {
+            if(kIsOutputBufferFull())
+                break;
+        }
+
+        // 출력 버퍼(포트 0x60)에서 읽은 데이터가 ACK(0xFA)이면 성공
+        if(kInPortByte(0x60) == 0xFA)
+            break;
+    }
+
+    if(j >= 100)
+        returrn FALSE;
+
+    // 변경 할 LED 상태를 키보드로 전송하고, 처리가 끝날 때 까지 대기
+    kOutPortByte(0x60, (isCapsLockOn << 2) | (isNumLockOn << 1) | (isScrollLockOn << 0));
+    for(i = 0; i < 0xFFFF; ++i) {
+        if(!kIsInputBufferFull())
+            break;
+    }
+
+    // ACK 수신 대기
+    for(j = 0; j < 100; ++j) {
+        // 0xFFFF 번 루프를 수행할 시간이면 충분히 커맨드 전송이 끝남
+        // 0xFFFF 번 루프를 수행 이 후에도 입력 버퍼(포트 0x60)이 쓰여있지 않으면 무시하고 읽음
+        for(i = 0; i < 0xFFFF; ++i) {
+            if(kIsOutputBufferFull())
+                break;
+        }
+
+        // 출력 버퍼(포트 0x60)에서 읽은 데이터가 ACK(0xFA)이면 성공
+        if(kInPortByte(0x60) == 0xFA)
+            break;
+    }
+
+    returrn (j < 100);
+}
+
+// A20 게이트 활성화
+void kEnableA20Gate(void) {
+    ...
+}

@@ -1,0 +1,17 @@
+{
+    "configurations": [
+      {
+        "name": "bbi-os",
+        "includePath": [
+          "${workspaceFolder}/**"
+        ],
+        "defines": [
+        ],
+        "compilerPath": "/usr/cross/bin/x86_64-pc-linux-gcc",
+        "cStandard": "c99",
+        "cppStandard": "c++11",
+        "intelliSenseMode": "gcc-x64"
+      }
+    ],
+    "version": 4
+  }
