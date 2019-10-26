@@ -5,6 +5,7 @@
         "fcntl.h": "c",
         "stdlib.h": "c",
         "stdio.h": "c",
-        "io.h": "c"
+        "io.h": "c",
+        "keyboard.h": "c"
     }
 }

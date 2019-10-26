@@ -92,7 +92,7 @@ BOOL kChangeKeyboardLED(BOOL isCapsLockOn, BOOL isNumLockOn, BOOL isScrollLockOn
     }
 
     if(j >= 100)
-        returrn FALSE;
+        return FALSE;
 
     // 변경 할 LED 상태를 키보드로 전송하고, 처리가 끝날 때 까지 대기
     kOutPortByte(0x60, (isCapsLockOn << 2) | (isNumLockOn << 1) | (isScrollLockOn << 0));
@@ -134,7 +134,7 @@ void kEnableA20Gate(void) {
     }
 
     // 출력 포트(Port 0x60)에 수신된 키보드 컨트롤러의 출력 포트 값 읽기
-    outputPortData = kInPortByte(0x60)
+    outputPortData = kInPortByte(0x60);
 
     // A20 게이트 활성화 Bit 설정
     outputPortData |= (0x1 << 0);
@@ -271,4 +271,38 @@ static KEYMAPPINGENTRY gKeyMappingTable[KEY_MAPPING_TABLE_MAX_COUNT] = {
     /*  88  */  {   KEY_F12         ,   KEY_F12         }
 };
 
+// 알파벳인지 확인
+BOOL kIsAlphabetScanCode(BYTE scanCode) {
+    // 변환 테이블을 이용해 확인
+    return ('a' <= gKeyMappingTable[scanCode].normalCode &&
+        gKeyMappingTable[scanCode].normalCode <= 'z');
+}
 
+// 숫자 혹은 기호인지 확인
+BOOL kIsNumberOrSymbolScanCode(BYTE scanCode) {
+    // 숫자 패드, 확장 키를 제외한 Code 중(2 ~ 53)에서 영문자가 아니면 숫자 or 기호
+    return (2 <= scanCode && scanCode <= 53 && kIsAlphabetScanCode(scanCode) == FALSE);
+}
+
+// 숫자 패드 범위인지 확인
+BOOL kIsNumberPadScanCode(BYTE scanCode) {
+    return (71 <= scanCode && scanCode <= 83);
+}
+
+// 조합된 키 값을 사용해야 하는지 확인
+BOOL kIsUseCombinedCode(BYTE scanCode) {
+    BYTE downScanCode;
+    BOOL useCombinedKey = FALSE;
+
+    downScanCode = scanCode & 0x7F;
+
+    if(kIsAlphabetScanCode(downScanCode))               // 알파벳이라면 Shift 키와 Caps Lock의 영향을 받음
+        useCombinedKey = gKeyboardManager.isShiftDown ^ gKeyboardManager.isCapsLockOn;
+    else if(kIsNumberOrSymbolScanCode(downScanCode))    // 숫자 혹은 기호라면 Shift 키의 영향을 받음
+        useCombinedKey = gKeyboardManager.isShiftDown;
+    else if(kIsNumberPadScanCode(downScanCode)          // 숫자 패드 키라면 Num Lock의 영향을 받음
+        && gKeyboardManager.extendedCodeIn == FALSE)    // 0xE0만 제외하면 확장 키 코드와 숫자 패드의 코드가 겹치므로
+        useCombinedKey = gKeyboardManager.isNumLockOn;  // 확장 키 코드가 수신되지 않았을 때만 조합 코드 사용
+
+    return useCombinedKey;
+}

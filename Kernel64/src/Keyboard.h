@@ -65,24 +65,24 @@
 typedef struct kKeyMappingEntryStruct
 {
     // Shift 키나 Caps Lock 키와 조합되지 않는 ASCII 코드
-    BYTE bNormalCode;
+    BYTE normalCode;
     
     // Shift 키나 Caps Lock 키와 조합된 ASCII 코드
-    BYTE bCombinedCode;
+    BYTE combinedCode;
 } KEYMAPPINGENTRY;
 
 // 키보드의 상태를 관리하는 자료구조
 typedef struct kKeyboardManagerStruct
 {
     // 조합 키 정보
-    BOOL bShiftDown;
-    BOOL bCapsLockOn;
-    BOOL bNumLockOn;
-    BOOL bScrollLockOn;
+    BOOL isShiftDown;
+    BOOL isCapsLockOn;
+    BOOL isNumLockOn;
+    BOOL isScrollLockOn;
     
     // 확장 키를 처리하기 위한 정보
-    BOOL bExtendedCodeIn;
-    int iSkipCountForPause;
+    BOOL extendedCodeIn;
+    int skipCountForPause;
 } KEYBOARDMANAGER;
 
 #pragma pack( pop )
