@@ -38,7 +38,7 @@ void Main(void) {
 
             // Scan code를 ASCII 코드와 Key Up/Down 정보로 변환
             if(kConvertScanCodeToASCIICode(tmp, temp, &flags) && (flags & KEY_FLAGS_DOWN))
-                kPrintString(i++, 13, "a");
+                kPrintString(i++, 13, temp);
         }
     }
 }

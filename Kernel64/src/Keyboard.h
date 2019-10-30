@@ -71,6 +71,8 @@ typedef struct kKeyMappingEntryStruct
     BYTE combinedCode;
 } KEYMAPPINGENTRY;
 
+#pragma pack( pop )
+
 // 키보드의 상태를 관리하는 자료구조
 typedef struct kKeyboardManagerStruct
 {
@@ -84,8 +86,6 @@ typedef struct kKeyboardManagerStruct
     BOOL isExtendedCodeIn;
     int skipCountForPause;
 } KEYBOARDMANAGER;
-
-#pragma pack( pop )
 
 ////////////////////////////////////////////////////////////////////////////////
 //

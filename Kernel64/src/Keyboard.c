@@ -6,14 +6,14 @@
 BOOL kIsOutputBufferFull(void) {
     // 상태 레지스터(Port 0x64)에서 읽은 값의 출력 버퍼 상태 비트(BIT 0)가
     // 1로 설정 되어 있는 경우, 출력 버퍼에 키보드가 전송한 데이터가 존재
-    return (kInPortByte(0x64) & 0x1) ? TRUE : FALSE;
+    return (kInPortByte(0x64) & 0x1);
 }
 
 // 입력 버퍼(Port 0x64) 프로세서가 쓴 데이터 확인
 BOOL kIsInputBufferFull(void) {
     // 상태 레지스터(Port 0x64)에서 읽은 값의 입력 버퍼 상태 비트(BIT 1)가
     // 1로 설정 되어 있는 경우, 출력 버퍼에 키보드가 전송한 데이터가 존재
-    return (kInPortByte(0x64) & 0x2) ? TRUE : FALSE;
+    return (kInPortByte(0x64) & 0x2);
 }
 
 BOOL kActivateKeyboard(void) {
@@ -169,6 +169,8 @@ void kReboot(void) {
 
     // 입력 버퍼(Port 0x60)에 0x0을 전달해서 Keyboard 프로세서 Reset
     kOutPortByte(0x60, 0x00);
+
+    while(TRUE);
 }
 
 /**
@@ -369,7 +371,7 @@ BOOL kConvertScanCodeToASCIICode(BYTE scanCode, BYTE *pASCIICode, BOOL *pFlags) 
     gKeyboardManager.isExtendedCodeIn = FALSE;
 
     // 키 Down/Up 상태 갱신
-    if( scanCode & (0x1 << 7) == 0 )
+    if( (scanCode & (0x1 << 7)) == 0 )
         *pFlags |= KEY_FLAGS_DOWN;
 
     // 조합 키 Down/Up 상태 갱신
