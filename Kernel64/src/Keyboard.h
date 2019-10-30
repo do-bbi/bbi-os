@@ -81,7 +81,7 @@ typedef struct kKeyboardManagerStruct
     BOOL isScrollLockOn;
     
     // 확장 키를 처리하기 위한 정보
-    BOOL extendedCodeIn;
+    BOOL isExtendedCodeIn;
     int skipCountForPause;
 } KEYBOARDMANAGER;
 

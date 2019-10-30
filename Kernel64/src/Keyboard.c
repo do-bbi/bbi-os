@@ -62,7 +62,11 @@ BYTE kGetKeyboardScanCode(void) {
 }
 
 // 키보드 상태 LED ON/OFF
-BOOL kChangeKeyboardLED(BOOL isCapsLockOn, BOOL isNumLockOn, BOOL isScrollLockOn) {
+BOOL kChangeKeyboardLED(KEYBOARDMANAGER manager) {
+    BOOL isCapsLockOn   = manager.isCapsLockOn;
+    BOOL isNumLockOn    = manager.isNumLockOn;
+    BOOL isScrollLockOn = manager.isScrollLockOn;
+    
     int i, j;
 
     for(i = 0; i < 0xFFFF; ++i) {
@@ -291,18 +295,89 @@ BOOL kIsNumberPadScanCode(BYTE scanCode) {
 
 // 조합된 키 값을 사용해야 하는지 확인
 BOOL kIsUseCombinedCode(BYTE scanCode) {
-    BYTE downScanCode;
+    BYTE downKeyScanCode;
     BOOL useCombinedKey = FALSE;
 
-    downScanCode = scanCode & 0x7F;
+    downKeyScanCode = scanCode & 0x7F;
 
-    if(kIsAlphabetScanCode(downScanCode))               // 알파벳이라면 Shift 키와 Caps Lock의 영향을 받음
+    if(kIsAlphabetScanCode(downKeyScanCode))               // 알파벳이라면 Shift 키와 Caps Lock의 영향을 받음
         useCombinedKey = gKeyboardManager.isShiftDown ^ gKeyboardManager.isCapsLockOn;
-    else if(kIsNumberOrSymbolScanCode(downScanCode))    // 숫자 혹은 기호라면 Shift 키의 영향을 받음
+    else if(kIsNumberOrSymbolScanCode(downKeyScanCode))    // 숫자 혹은 기호라면 Shift 키의 영향을 받음
         useCombinedKey = gKeyboardManager.isShiftDown;
-    else if(kIsNumberPadScanCode(downScanCode)          // 숫자 패드 키라면 Num Lock의 영향을 받음
-        && gKeyboardManager.extendedCodeIn == FALSE)    // 0xE0만 제외하면 확장 키 코드와 숫자 패드의 코드가 겹치므로
+    else if(kIsNumberPadScanCode(downKeyScanCode)          // 숫자 패드 키라면 Num Lock의 영향을 받음
+        && gKeyboardManager.isExtendedCodeIn == FALSE)    // 0xE0만 제외하면 확장 키 코드와 숫자 패드의 코드가 겹치므로
         useCombinedKey = gKeyboardManager.isNumLockOn;  // 확장 키 코드가 수신되지 않았을 때만 조합 코드 사용
 
     return useCombinedKey;
+}
+
+// 조합 키의 상태를 갱신하고 LED 상태 동기화
+void UpdateCombinationKeyStatusAndLED(BYTE scanCode) {
+    BOOL isKeyDown;
+    BYTE downKeyScanCode;
+    BOOL isLEDStatusChanged = FALSE;
+
+    // 키 Down/Up 상태, 최상위 Bit[7]이 0=Down, 1=Up
+    isKeyDown = !(scanCode & (0x1 << 7));
+    downKeyScanCode = scanCode & 0x7F;
+
+    // 조합 키 검색
+    if( downKeyScanCode == 42 || downKeyScanCode == 54 )    // Shift 키 Scan code(42 or 54)면 Shift 키의 상태를 갱신
+        gKeyboardManager.isShiftDown = isKeyDown;
+    else if( downKeyScanCode == 58 && isKeyDown ) {         // Caps Lock 키 Scan code(58)면 Caps Lock의 상태를 갱신하고 LED 상태 변경
+        gKeyboardManager.isCapsLockOn ^= TRUE;
+        isLEDStatusChanged = TRUE;
+    }
+    else if( downKeyScanCode == 69 && isKeyDown ) {         // Num Lock 키 Scan code(69)면 Num Lock의 상태를 갱신하고 LED 상태 변경
+        gKeyboardManager.isNumLockOn ^= TRUE;
+        isLEDStatusChanged = TRUE;
+    }
+    else if( downKeyScanCode == 70 && isKeyDown ) {         // Scroll Lock 키 Scan code(70)면 Scroll Lock의 상태를 갱신하고 LED 상태 변경
+        gKeyboardManager.isScrollLockOn ^= TRUE;
+        isLEDStatusChanged = TRUE;
+    }
+
+    if( isLEDStatusChanged) // LED 상태가 변했으면 키보드로 명령을 전송하여 LED 변경
+        kChangeKeyboardLED(gKeyboardManager);
+}
+
+// 스캔 코드를 ASCII 코드로 변환
+BOOL kConvertScanCodeToASCIICode(BYTE scanCode, BYTE *pASCIICode, BOOL *pFlags) {
+    BOOL isCombinedKeyUsed;
+
+    // 이전에 Pause 키가 수신됐다면, Pause의 남은 Scan code를 무시
+    if(gKeyboardManager.skipCountForPause > 0) {
+        gKeyboardManager.skipCountForPause--;
+        return FALSE;
+    }
+
+    if(scanCode == 0xE1) {          // Pause 키는 특별히 처리
+        *pASCIICode = KEY_PAUSE;
+        *pFlags = KEY_FLAGS_DOWN;
+        gKeyboardManager.skipCountForPause = KEY_SKIP_COUNT_FOR_PAUSE;
+
+        return TRUE;
+    }
+    else if(scanCode == 0xE0) {     // 확장 키 코드가 들어왔을 때, 실제 키 값은 다음에 들어오므로 플래그 설정만 하고 종료
+        gKeyboardManager.isExtendedCodeIn = TRUE;
+        return FALSE;
+    }
+
+    isCombinedKeyUsed = kIsUseCombinedCode(scanCode);
+
+    // 키 값 설정
+    *pASCIICode = isCombinedKeyUsed ? gKeyMappingTable[scanCode & 0x7F].combinedCode : gKeyMappingTable[scanCode & 0x7F].normalCode;
+
+    // 확장 키 유무 설정
+    *pFlags = gKeyboardManager.isExtendedCodeIn ? KEY_FLAGS_EXTENDED : 0;
+    gKeyboardManager.isExtendedCodeIn = FALSE;
+
+    // 키 Down/Up 상태 갱신
+    if( scanCode & (0x1 << 7) == 0 )
+        *pFlags |= KEY_FLAGS_DOWN;
+
+    // 조합 키 Down/Up 상태 갱신
+    UpdateCombinationKeyStatusAndLED(scanCode);
+
+    return TRUE;
 }
