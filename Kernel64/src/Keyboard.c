@@ -62,11 +62,7 @@ BYTE kGetKeyboardScanCode(void) {
 }
 
 // 키보드 상태 LED ON/OFF
-BOOL kChangeKeyboardLED(KEYBOARDMANAGER manager) {
-    BOOL isCapsLockOn   = manager.isCapsLockOn;
-    BOOL isNumLockOn    = manager.isNumLockOn;
-    BOOL isScrollLockOn = manager.isScrollLockOn;
-    
+BOOL kChangeKeyboardLED( BOOL isCapsLockOn, BOOL isNumLockOn, BOOL isScrollLockOn ) {    
     int i, j;
 
     for(i = 0; i < 0xFFFF; ++i) {
@@ -119,7 +115,7 @@ BOOL kChangeKeyboardLED(KEYBOARDMANAGER manager) {
             break;
     }
 
-    returrn (j < 100);
+    return (j < 100);
 }
 
 // A20 게이트 활성화
@@ -338,7 +334,7 @@ void UpdateCombinationKeyStatusAndLED(BYTE scanCode) {
     }
 
     if( isLEDStatusChanged) // LED 상태가 변했으면 키보드로 명령을 전송하여 LED 변경
-        kChangeKeyboardLED(gKeyboardManager);
+        kChangeKeyboardLED(gKeyboardManager.isCapsLockOn, gKeyboardManager.isNumLockOn, gKeyboardManager.isScrollLockOn);
 }
 
 // 스캔 코드를 ASCII 코드로 변환

@@ -1,1 +1,3 @@
-Main.o: ../src/Main.c ../../Kernel32/src/Types.h
+Keyboard.o: ../src/Keyboard.c ../../Kernel32/src/Types.h \
+ ../src/AssemblyUtil.h ../src/Keyboard.h
+Main.o: ../src/Main.c ../../Kernel32/src/Types.h ../src/Keyboard.h

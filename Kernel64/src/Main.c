@@ -11,7 +11,7 @@ void kPrintString(int iX, int iY, const char* pcString);
 void Main(void) {
     char temp[2] = {0, };
     BYTE tmp, flags;
-    int i;
+    int i = 0;
 
     int posY = 10;
     kPrintString(PRINT_BLANK_POS, posY, "PASS");
@@ -27,6 +27,19 @@ void Main(void) {
     else {
         kPrintString(PRINT_BLANK_POS, posY, "FAIL");
         while(TRUE);
+    }
+
+    posY++;
+    while(TRUE) {
+        // 출력 버퍼(Port 0x60)가 차 있으면 Scan code를 읽을 수 있음
+        if(kIsOutputBufferFull()) {
+            // 출력 버퍼(Port 0x60)에서 Scan code를 읽어서 저장
+            tmp = kGetKeyboardScanCode();
+
+            // Scan code를 ASCII 코드와 Key Up/Down 정보로 변환
+            if(kConvertScanCodeToASCIICode(tmp, temp, &flags) && (flags & KEY_FLAGS_DOWN))
+                kPrintString(i++, 13, "a");
+        }
     }
 }
 
