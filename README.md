@@ -1,3 +1,5 @@
+https://github.com/do-bbi/bbi-os/wiki
+
 # bbi-os
 64bit Multicore OS using Intel x86_64 
 
