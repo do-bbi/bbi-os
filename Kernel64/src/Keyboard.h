@@ -53,12 +53,6 @@
 #define KEY_F12                     (0x9F)
 #define KEY_PAUSE                   (0xA0)
 
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// 구조체
-//
-////////////////////////////////////////////////////////////////////////////////
 #pragma pack( push, 1 )
 
 // 스캔 코드 테이블을 구성하는 항목
@@ -87,23 +81,18 @@ typedef struct kKeyboardManagerStruct
     int skipCountForPause;
 } KEYBOARDMANAGER;
 
-////////////////////////////////////////////////////////////////////////////////
-//
-//  함수
-//
-////////////////////////////////////////////////////////////////////////////////
-BOOL kIsOutputBufferFull( void );
-BOOL kIsInputBufferFull( void );
-BOOL kActivateKeyboard( void );
-BYTE kGetKeyboardScanCode( void );
-BOOL kChangeKeyboardLED( BOOL isCapsLockOn, BOOL isNumLockOn, BOOL isScrollLockOn );
-void kEnableA20Gate( void );
-void kReboot( void );
-BOOL kIsAlphabetScanCode( BYTE isScanCode );
-BOOL kIsNumberOrSymbolScanCode( BYTE isScanCode );
-BOOL kIsNumberPadScanCode( BYTE isScanCode );
-BOOL kIsUseCombinedCode( BOOL isScanCode );
-void UpdateCombinationKeyStatusAndLED( BYTE isScanCode );
-BOOL kConvertScanCodeToASCIICode( BYTE isScanCode, BYTE *pASCIICode, BOOL *pFlags );
+BOOL kIsOutputBufferFull(void);
+BOOL kIsInputBufferFull(void);
+BOOL kActivateKeyboard(void);
+BYTE kGetKeyboardScanCode(void);
+BOOL kChangeKeyboardLED(BOOL isCapsLockOn, BOOL isNumLockOn, BOOL isScrollLockOn);
+void kEnableA20Gate(void);
+void kReboot(void);
+BOOL kIsAlphabetScanCode(BYTE isScanCode);
+BOOL kIsNumberOrSymbolScanCode(BYTE isScanCode);
+BOOL kIsNumberPadScanCode(BYTE isScanCode);
+BOOL kIsUseCombinedCode(BOOL isScanCode);
+void UpdateCombinationKeyStatusAndLED(BYTE isScanCode);
+BOOL kConvertScanCodeToASCIICode(BYTE isScanCode, BYTE *pASCIICode, BOOL *pFlags);
 
 #endif // __KEYBOARD_H__
