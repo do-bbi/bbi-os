@@ -8,7 +8,7 @@ void kMemSet(void *pDst, BYTE data, int size) {
         ((char *)pDst)[i] = data;
 }
 
-//메모리 복사
+// 메모리 복사
 int kMemCpy(void *pDst, const void *pSrc, int size) {
     int i;
     
