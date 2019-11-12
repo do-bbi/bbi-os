@@ -3,6 +3,7 @@
 
 #include "Types.h"
 
+// GDT
 #define GDT_TYPE_CODE           (0x0A)
 #define GDT_TYPE_DATA           (0x02)
 #define GDT_TYPE_TSS            (0x09)
@@ -57,5 +58,52 @@
 
 #define TSS_SEGMENT_SIZE        (sizeof(TSSSEGMENT))
 
+// IDT
+#define IDT_TYPE_INTERRUPT  (0x0E)
+#define IDT_TYPE_TRAP       (0x0F)
+
+#define IDT_FLAGS_DPL0      (0x00)
+#define IDT_FLAGS_DPL1      (0x20)
+#define IDT_FLAGS_DPL2      (0x40)
+#define IDT_FLAGS_DPL3      (0x60)
+#define IDT_FLAGS_P         (0x80)
+
+#define IDT_FLAGS_IST0      (0)
+#define IDT_FLAGS_IST1      (1)
+
+#define IDT_FLAGS_KERNEL    (IDT_FLAGS_DPL0 | IDT_FLAGS_P)
+#define IDT_FLAGS_USER      (IDT_FLAGS_DPL3 | IDT_FLAGS_P)
+
+#define IDT_MAX_ENTRY_COUNT (100)
+
+#define IDTR_BASE_ADDR      (GDTR_BASE_ADDR + sizeof(GDTR) + \
+                             GDT_TABLE_SIZE + TSS_SEGMENT_SIZE)
+
+#define IDT_BASE_ADDR       (IDTR_BASE_ADDR + sizeof(IDTR))
+
+#define IDT_TABLE_SIZE      (IDT_MAX_ENTRY_COUNT * sizeof(IDTENTRY))
+
+#define IST_BASE_ADDR       (0x700000)
+
+#define IST_SIZE            (0x100000)
+
+// Struct - 1 Byte aligned
+#pragma pack(push, 1)
+
+typedef struct kGDTRStruct {
+    WORD limit;
+    QWORD baseAddr;
+    WORD pading;
+    DWORD pading;
+} GDTR, IDTR;
+
+typedef struct kGDTEntry8Struct {
+    WORD lowerLimit;
+    WORD lowerBaseAddr;
+    BYTE upperBaseAddr1;
+    BYTE typeAndLowerFlag;          // Type = S | DPL[2:1] | P
+    BYTE upperLimitAndUpperFlag;    // Segment Limit = AVL | L | D/B | G
+    BYTE upperBaseAddr2;
+}
 
 #endif  // __DESCRIPTOR_H__
