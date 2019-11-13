@@ -1,3 +1,7 @@
 Keyboard.o: ../src/Keyboard.c ../../Kernel32/src/Types.h \
  ../src/AssemblyUtil.h ../src/Keyboard.h
-Main.o: ../src/Main.c ../../Kernel32/src/Types.h ../src/Keyboard.h
+Utility.o: ../src/Utility.c ../src/Utility.h ../../Kernel32/src/Types.h
+Descriptor.o: ../src/Descriptor.c ../src/Descriptor.h \
+ ../../Kernel32/src/Types.h ../src/Utility.h
+Main.o: ../src/Main.c ../../Kernel32/src/Types.h ../src/Keyboard.h \
+ ../src/Descriptor.h ../src/AssemblyUtil.h

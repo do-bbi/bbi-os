@@ -42,7 +42,7 @@
 // Segment Descriptor Offset
 #define GDT_KERNEL_CODE_SEGMENT (0x08)
 #define GDT_KERNEL_DATA_SEGMENT (0x10)
-#define GDT_TSS_SEGMENT         (0x18)
+#define GDT_TS_SEGMENT         (0x18)
 
 // ENV
 #define GDTR_BASE_ADDR          (0x142000)  // 1MB + 264KB
@@ -56,7 +56,7 @@
 #define GDT_TABLE_SIZE          ( (sizeof(GDTENTRY8) * GDT_MAX_ENTRY8_COUNT) + \
                                   (sizeof(GDTENTRY16) * GDT_MAX_ENTRY16_COUNT) )
 
-#define TSS_SEGMENT_SIZE        (sizeof(TSSEGMENT))
+#define TS_SEGMENT_SIZE        (sizeof(TSSEGMENT))
 
 // IDT
 #define IDT_TYPE_INTERRUPT  (0x0E)
@@ -77,7 +77,7 @@
 #define IDT_MAX_ENTRY_COUNT (100)
 
 #define IDTR_BASE_ADDR      (GDTR_BASE_ADDR + sizeof(GDTR) + \
-                             GDT_TABLE_SIZE + TSS_SEGMENT_SIZE)
+                             GDT_TABLE_SIZE + TS_SEGMENT_SIZE)
 
 #define IDT_BASE_ADDR       (IDTR_BASE_ADDR + sizeof(IDTR))
 
