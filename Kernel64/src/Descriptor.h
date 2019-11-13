@@ -34,7 +34,7 @@
 #define GDT_FLAGS_LOWER_USER_DATA   (GDT_TYPE_DATA | GDT_FLAGS_LOWER_S | \
                                     GDT_FLAGS_LOWER_DPL3 | GDT_FLAGS_LOWER_P)
 
-// Upper Flags[Granulaty]
+// Set Upper Flags as "Granulaty"
 #define GDT_FLAGS_UPPER_CODE        (GDT_FLAGS_UPPER_G | GDT_FLAGS_UPPER_L)
 #define GDT_FLAGS_UPPER_DATA        (GDT_FLAGS_UPPER_G | GDT_FLAGS_UPPER_L)
 #define GDT_FLAGS_UPPER_TSS         (GDT_FLAGS_UPPER_G)
@@ -56,7 +56,7 @@
 #define GDT_TABLE_SIZE          ( (sizeof(GDTENTRY8) * GDT_MAX_ENTRY8_COUNT) + \
                                   (sizeof(GDTENTRY16) * GDT_MAX_ENTRY16_COUNT) )
 
-#define TSS_SEGMENT_SIZE        (sizeof(TSSSEGMENT))
+#define TSS_SEGMENT_SIZE        (sizeof(TSSEGMENT))
 
 // IDT
 #define IDT_TYPE_INTERRUPT  (0x0E)
@@ -83,27 +83,70 @@
 
 #define IDT_TABLE_SIZE      (IDT_MAX_ENTRY_COUNT * sizeof(IDTENTRY))
 
+// IST
 #define IST_BASE_ADDR       (0x700000)
 
 #define IST_SIZE            (0x100000)
 
-// Struct - 1 Byte aligned
+// 1 Byte aligned Struct
 #pragma pack(push, 1)
 
 typedef struct kGDTRStruct {
     WORD limit;
     QWORD baseAddr;
-    WORD pading;
-    DWORD pading;
+    WORD pading1;                    // For 16 Bytes Aligned
+    DWORD pading2;
 } GDTR, IDTR;
 
 typedef struct kGDTEntry8Struct {
     WORD lowerLimit;
     WORD lowerBaseAddr;
     BYTE upperBaseAddr1;
-    BYTE typeAndLowerFlag;          // Type = S | DPL[2:1] | P
-    BYTE upperLimitAndUpperFlag;    // Segment Limit = AVL | L | D/B | G
+    BYTE typeAndLowerFlag;          // Type[7:4] | S[3] | DPL[2:1] | P[0]
+    BYTE upperLimitAndUpperFlag;    // Segment Limit[7:4] | AVL[3] | L[2] | D/B[1] | G[0]
     BYTE upperBaseAddr2;
-}
+} GDTENTRY8;
+
+typedef struct kGDTEntry16Struct {
+    WORD lowerLimit;
+    WORD lowerBaseAddr;
+    BYTE middleBaseAddr1;
+    BYTE typeAndLowerFlag;          // Type[7:4] | 0[3] | DPL[2:1] | P[0]
+    BYTE upperLimitAndUpperFlag;    // Segment Limit[7:4] | AVL[3] | 0[2] | 0[1] | G[0]
+    BYTE middleBaseAddr2;
+    DWORD upperBaseAddr;
+    DWORD reserved;
+} GDTENTRY16;
+
+// Task State Segment
+typedef struct kTSSDataStruct {
+    DWORD reserved1;
+    QWORD rsp[3];
+    QWORD reserved2;
+    QWORD ist[7];
+    QWORD reserved3;
+    WORD reserved;
+    WORD ioMapBaseAddr;
+} TSSEGMENT;
+
+typedef struct kIDTEntryStruct {
+    WORD lowerBaseAddr;
+    WORD segmentSelector;
+    BYTE ist;                       // IST[7:5] | 0x0[4:0]
+    BYTE typeAndFlags;          // Type[7:4] | 0[5] | DPL[2:1] | P[0]
+    WORD middleBaseAddr;
+    DWORD upperBaseAddr;
+    DWORD reserved;
+} IDTENTRY;
+
+#pragma pack(pop)
+
+void kInitializeGDTableAndTSS(void);
+void kSetGDTEntry8(GDTENTRY8 *pEntry8, DWORD baseAddr, DWORD limit, BYTE upperFlags, BYTE lowerFlags, BYTE type);
+void kSetGDTEntry16(GDTENTRY16 *pEntry16, QWORD baseAddr, DWORD limit, BYTE upperFlags, BYTE lowerFlags, BYTE type);
+void kInitializeTSSegment(TSSEGMENT *pTSS);
+void kInitializeIDTables(void);
+void kSetIDTEntry(IDTENTRY *pEntry, void *pHandler, WORD selector, BYTE ist, BYTE flags, BYTE type);
+void kDummyHandler(void);
 
 #endif  // __DESCRIPTOR_H__
