@@ -133,7 +133,7 @@ typedef struct kIDTEntryStruct {
     WORD lowerBaseAddr;
     WORD segmentSelector;
     BYTE ist;                       // IST[7:5] | 0x0[4:0]
-    BYTE typeAndFlags;          // Type[7:4] | 0[5] | DPL[2:1] | P[0]
+    BYTE typeAndFlags;              // Type[7:4] | 0[5] | DPL[2:1] | P[0]
     WORD middleBaseAddr;
     DWORD upperBaseAddr;
     DWORD reserved;
