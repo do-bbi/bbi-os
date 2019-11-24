@@ -243,7 +243,7 @@ kISRPageFault:
     iretq           ; Return to original code after handler
 
 ; #15 Reserved ISR
-kISRReserved:
+kISR15:
     KSAVECONTEXT
 
     mov rdi, 15
@@ -321,7 +321,7 @@ kISRKeyboard:
     KSAVECONTEXT
 
     mov rdi, 33
-    call kCommonInterruptHandler
+    call kKeyboardHandler
 
     KLOADCONTEXT
     iretq           ; Return to original code after handler
@@ -347,7 +347,7 @@ kISRSerial2:
     iretq           ; Return to original code after handler
 
 ; #36 Serial Port 1 ISR
-kISRSerial2:
+kISRSerial1:
     KSAVECONTEXT
 
     mov rdi, 36
@@ -437,7 +437,7 @@ kISRMouse:
     iretq           ; Return to original code after handler
 
 ; #45 Coprocessor ISR
-kISRRTC:
+kISRCoprocessor:
     KSAVECONTEXT
 
     mov rdi, 45
@@ -457,7 +457,7 @@ kISRHDD1:
     iretq           ; Return to original code after handler
 
 ; #47 HDD 2 ISR
-kISRRTC:
+kISRHDD2:
     KSAVECONTEXT
 
     mov rdi, 47

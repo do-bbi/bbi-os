@@ -3,11 +3,9 @@
 SECTION .text       ; text 섹션 정의
 
 ; C 언어에서 호출 가능하도록 함수 Export
-global kInPortByte
-global kOutPortByte
-global kLoadGDTR
-global kLoadTR
-global kLoadIDTR
+global kInPortByte, kOutPortByte
+global kLoadGDTR, kLoadTR, kLoadIDTR
+global kEnableInterrupt, kDisableInterrupt, kReadRFLAGS
 
 SECTION .text
 
@@ -58,3 +56,22 @@ kLoadIDTR:
     lidt [rdi]  ; Param 0(Address of IDTR)를 프로세서에 로드
                 ; IDT 테이블 설정
     ret
+
+; Activate Interrupts
+; PARAM: None
+kEnableInterrupt:
+    sti         ; Activate Interrupts
+    ret
+
+; Deactivate Interrupts
+; PARAM: None
+kDisableInterrupt:
+    cli         ; Deactivate Interrupts
+    ret
+
+; Read RFLAGS & return
+kReadRFLAGS:
+    pushfq      ; Save RFLAGS Register to Stack
+    pop rax     ; Save RFLAGS in stack to RAX Register
+
+    ret         ; Return RAX Value

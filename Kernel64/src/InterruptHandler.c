@@ -52,7 +52,7 @@ void kKeyboardHandler(int vectorNumber) {
     // Count of Interrupts
     buf[8] = '0' + gKeyboardInterruptCount;
     gKeyboardInterruptCount = (++gKeyboardInterruptCount) % 10;
-    kPrintString(0, 0, buf);
+    kPrintString(70, 1, buf);
     
     kSendEOI2PIC(vectorNumber - PIC_IRQ_VECTOR_OFFSET);
 }

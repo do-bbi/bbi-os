@@ -1,7 +1,10 @@
 Keyboard.o: ../src/Keyboard.c ../../Kernel32/src/Types.h \
  ../src/AssemblyUtil.h ../src/Keyboard.h
+PIC.o: ../src/PIC.c ../src/PIC.h ../../Kernel32/src/Types.h
 Utility.o: ../src/Utility.c ../src/Utility.h ../../Kernel32/src/Types.h
 Descriptor.o: ../src/Descriptor.c ../src/Descriptor.h \
- ../../Kernel32/src/Types.h ../src/Utility.h
+ ../../Kernel32/src/Types.h ../src/Utility.h ../src/ISR.h
+InterruptHandler.o: ../src/InterruptHandler.c ../src/InterruptHandler.h \
+ ../../Kernel32/src/Types.h ../src/PIC.h
 Main.o: ../src/Main.c ../../Kernel32/src/Types.h ../src/Keyboard.h \
- ../src/Descriptor.h ../src/AssemblyUtil.h
+ ../src/Descriptor.h ../src/AssemblyUtil.h ../src/PIC.h

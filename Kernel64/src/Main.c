@@ -2,6 +2,7 @@
 #include "Keyboard.h"
 #include "Descriptor.h"
 #include "AssemblyUtil.h"
+#include "PIC.h"
 
 #define VIDEO_MEM_ADDR  (0xB8000)
 
@@ -48,6 +49,13 @@ void Main(void) {
         kPrintString(PRINT_BLANK_POS, posY, "FAIL");
         while(TRUE);
     }
+    
+    posY++;
+    kPrintString(0, posY, "PIC Activate & Initialize Interrupt.........[    ]");
+    kInitializePIC();
+    kMaskPICInterrupt(0);
+    kEnableInterrupt();
+    kPrintString(PRINT_BLANK_POS, posY, "PASS");
 
     posY++;
     while(TRUE) {
