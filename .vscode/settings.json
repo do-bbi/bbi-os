@@ -9,6 +9,7 @@
         "keyboard.h": "c",
         "utility.h": "c",
         "descriptor.h": "c",
-        "interrupthandler.h": "c"
+        "interrupthandler.h": "c",
+        "queue.h": "c"
     }
 }

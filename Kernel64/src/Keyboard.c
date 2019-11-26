@@ -1,6 +1,7 @@
 #include "Types.h"
 #include "AssemblyUtil.h"
 #include "Keyboard.h"
+#include "Queue.h"
 
 // 출력 버퍼(Port 0x60) 수신 데이터 확인
 BOOL kIsOutputBufferFull(void) {
@@ -15,6 +16,7 @@ BOOL kIsInputBufferFull(void) {
     // 1로 설정 되어 있는 경우, 출력 버퍼에 키보드가 전송한 데이터가 존재
     return (kInPortByte(0x64) & 0x2);
 }
+
 
 BOOL kActivateKeyboard(void) {
     int i, j;
