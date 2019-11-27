@@ -53,6 +53,8 @@
 #define KEY_F12                     (0x9F)
 #define KEY_PAUSE                   (0xA0)
 
+#define KEY_MAX_QUEUE_COUNT         (100)   // Max count of key-queue
+
 #pragma pack( push, 1 )
 
 // 스캔 코드 테이블을 구성하는 항목
@@ -80,6 +82,12 @@ typedef struct kKeyboardManagerStruct
     BOOL isExtendedCodeIn;
     int skipCountForPause;
 } KEYBOARDMANAGER;
+
+typedef struct kKeyDataStruct {
+    BYTE scanCode;  // 키보드에서 전달된 스캔 코드
+    BYTE asciiCode; // 스캔 코드를 변환한 ASCII 코드
+    BYTE flags;     // 키 상태를 저장하는 플래그(key down / key up / expansion key)
+} KEYDATA;
 
 BOOL kIsOutputBufferFull(void);
 BOOL kIsInputBufferFull(void);

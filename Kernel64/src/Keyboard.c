@@ -17,9 +17,43 @@ BOOL kIsInputBufferFull(void) {
     return (kInPortByte(0x64) & 0x2);
 }
 
+// if ACK received  ->
+// if not ACK       -> Push to Queue
+BOOL kWaitForACKAndPutOtherScanCode(void) {
+    int i, j;
+    BYTE data;
+    BOOL result = FALSE;
+
+    // ACK가 전송 되기 전에 키보드 출력 버퍼(Port 0x60)에 키 값이 저장될 수 있으므로
+    // 키보드에 전달 된 데이터를 최대 100개 까지 수신해서 ACK를 확인
+    for(j = 0; j < 100; ++j) {
+        // 0xFFFF 만큼 루프를 수행할 시간이면 충분히 ACK 전송이 될 만한 시간임
+        // 0xFFFF 만큼 루프를 수행한 이후에도 출력 버퍼(Port 0x60)가 차 있지 않으면 무시하고 읽음
+        for(i = 0; i < 0xFFFF; ++i)
+            if(kIsOutputBufferFull())   // 출력 버퍼(Port 0x60)가 차 있으면 데이터를 읽음
+                break;
+
+        // 출력 버퍼(Port 0x60)에서 읽은 데이터가 ACK(0xFA)이면 성공
+        data = kInPortByte(0x60);
+        if(data == 0xFA) {
+            result = TRUE;
+            break;
+        }
+        else
+            kConvertScanCodeAndPutQueue(data);        
+    }
+
+    return result;
+}
 
 BOOL kActivateKeyboard(void) {
     int i, j;
+
+    BOOL previousInterrupt;
+    BOOL result;
+
+    // Diasbled Interrupt
+    previousInterrupt = kSetInterruptFlag(FALSE);
 
     // 컨트롤 레지스터(Port 0x64)에 키보드 활성화 커맨드(0xAE)를 전달하여 키보드 디바이스 활성화
     kOutPortByte(0x64, 0xAE);
