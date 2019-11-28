@@ -6,5 +6,6 @@
 void kMemSet(void *pDst, BYTE data, int size);
 int kMemCpy(void *pDst, const void *pSrc, int size);
 int kMemCmp(const void *pDst, const void *pSrc, int size);
+BOOL kSetInterruptFlag(BOOL enableInterrupt);
 
 #endif /*__UTILITY_H__*/

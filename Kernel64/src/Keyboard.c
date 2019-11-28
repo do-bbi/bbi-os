@@ -71,22 +71,12 @@ BOOL kActivateKeyboard(void) {
     kOutPortByte(0x60, 0xF4);
 
     // ACK 수신 대기
-    // ACK 수신 전에 키보드 출력 버퍼(Port 0x60)에 Key 값이 저장되어 있을 수 있으므로
-    // 키보드에서 전달 된 데이터를 최대 100개 까지 수신하여 ACK 확인
-    for(j = 0; j < 100; ++j) {
-        // 0xFFFF 번 루프를 수행할 시간이면 충분히 커맨드 전송이 끝남
-        // 0xFFFF 번 루프를 수행 이 후에도 입력 버퍼(Port 0x60)이 쓰여있지 않으면 무시하고 읽음
-        for(i = 0; i < 0xFFFF; ++i) {
-            if(kIsOutputBufferFull())
-                break;
-        }
+    result = kWaitForACKAndPutOtherScanCode();
 
-        // 출력 버퍼(Port 0x60)에서 읽은 데이터가 ACK(0xFA)이면 성공
-        if(kInPortByte(0x60) == 0xFA)
-            return TRUE;
-    }
+    // 이전 인터럽트 상태 복원
+    kSetInterruptFlag(previousInterrupt);
 
-    return FALSE;
+    return result;
 }
 
 // 출력 버퍼(Port 0x60)에서 키를 읽음
@@ -100,6 +90,12 @@ BYTE kGetKeyboardScanCode(void) {
 // 키보드 상태 LED ON/OFF
 BOOL kChangeKeyboardLED( BOOL isCapsLockOn, BOOL isNumLockOn, BOOL isScrollLockOn ) {    
     int i, j;
+    BOOL previousInterrupt;
+    BOOL result;
+    BYTE data;
+
+    // 인터럽트 비활성화
+    previousInterrupt = kSetInterruptFlag(FALSE);
 
     for(i = 0; i < 0xFFFF; ++i) {
         if(!kIsInputBufferFull())
@@ -114,21 +110,10 @@ BOOL kChangeKeyboardLED( BOOL isCapsLockOn, BOOL isNumLockOn, BOOL isScrollLockO
     }
     
     // ACK 수신 대기
-    for(j = 0; j < 100; ++j) {
-        // 0xFFFF 번 루프를 수행할 시간이면 충분히 커맨드 전송이 끝남
-        // 0xFFFF 번 루프를 수행 이 후에도 입력 버퍼(Port 0x60)이 쓰여있지 않으면 무시하고 읽음
-        for(i = 0; i < 0xFFFF; ++i) {
-            if(kIsOutputBufferFull())
-                break;
-        }
-
-        // 출력 버퍼(Port 0x60)에서 읽은 데이터가 ACK(0xFA)이면 성공
-        if(kInPortByte(0x60) == 0xFA)
-            break;
-    }
-
-    if(j >= 100)
+    if(kWaitForACKAndPutOtherScanCode() == FALSE) {
+        kSetInterruptFlag(previousInterrupt);   // Restore previous interrupt mode
         return FALSE;
+    }
 
     // 변경 할 LED 상태를 키보드로 전송하고, 처리가 끝날 때 까지 대기
     kOutPortByte(0x60, (isCapsLockOn << 2) | (isNumLockOn << 1) | (isScrollLockOn << 0));
@@ -138,20 +123,10 @@ BOOL kChangeKeyboardLED( BOOL isCapsLockOn, BOOL isNumLockOn, BOOL isScrollLockO
     }
 
     // ACK 수신 대기
-    for(j = 0; j < 100; ++j) {
-        // 0xFFFF 번 루프를 수행할 시간이면 충분히 커맨드 전송이 끝남
-        // 0xFFFF 번 루프를 수행 이 후에도 입력 버퍼(Port 0x60)이 쓰여있지 않으면 무시하고 읽음
-        for(i = 0; i < 0xFFFF; ++i) {
-            if(kIsOutputBufferFull())
-                break;
-        }
+    result = kWaitForACKAndPutOtherScanCode();
+    kSetInterruptFlag(previousInterrupt);       // Restore previous interrupt mode
 
-        // 출력 버퍼(Port 0x60)에서 읽은 데이터가 ACK(0xFA)이면 성공
-        if(kInPortByte(0x60) == 0xFA)
-            break;
-    }
-
-    return (j < 100);
+    return result;
 }
 
 // A20 게이트 활성화
@@ -214,6 +189,10 @@ void kReboot(void) {
  */
 // 키보드 상태 관리 매니저
 static KEYBOARDMANAGER gKeyboardManager = {0, };
+
+// Queue & Buffer to save key
+static QUEUE gKeyQueue;
+static KEYDATA gKeyQueueBuffer[KEY_MAX_QUEUE_COUNT];
 
 // Scan code를 ASCII 코드로 변환하는 테이블
 static KEYMAPPINGENTRY gKeyMappingTable[KEY_MAPPING_TABLE_MAX_COUNT] = {
@@ -414,4 +393,52 @@ BOOL kConvertScanCodeToASCIICode(BYTE scanCode, BYTE *pASCIICode, BOOL *pFlags) 
     UpdateCombinationKeyStatusAndLED(scanCode);
 
     return TRUE;
+}
+
+// Initialize Keyboard
+BOOL kInitializeKeyboard(void) {
+    kInitializeQueue(&gKeyQueue, gKeyQueueBuffer, KEY_MAX_QUEUE_COUNT, sizeof(KEYDATA));
+
+    // Activate Keyboard
+    return kActivateKeyboard();
+}
+
+// Convert scancode to key and push key to queue
+BOOL kConvertScanCodeAndPutQueue(BYTE scanCode) {
+    KEYDATA data;
+    BOOL result = FALSE;
+    BOOL previousInterrupt;
+
+    // Assign scan code to key data
+    data.scanCode = scanCode;
+
+    // Convert scan code to ASCII & assign it to key data
+    if(kConvertScanCodeToASCIICode(scanCode, &(data.asciiCode), &data.flags)) {
+        // Deactivate Interrupt
+        previousInterrupt = kSetInterruptFlag(FALSE);
+
+        // Insert Key to queue
+        result = kPutQueue(&gKeyQueue, &data);
+    }
+
+    return result;
+}
+
+BOOL kGetKeyFromKeyQueue(KEYDATA *pData) {
+    BOOL result;
+    BOOL previousInterrupt;
+
+    if(kIsQueueEmpty(&gKeyQueue))
+        return FALSE;
+
+    // Deactivate Interrupt
+    previousInterrupt = kSetInterruptFlag(FALSE);
+
+    // Pop data from queue
+    result = kGetQueue(&gKeyQueue, pData);
+
+    // Restore Interrupt Flags
+    kSetInterruptFlag(previousInterrupt);
+
+    return result;
 }

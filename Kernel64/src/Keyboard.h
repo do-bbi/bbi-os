@@ -102,5 +102,9 @@ BOOL kIsNumberPadScanCode(BYTE isScanCode);
 BOOL kIsUseCombinedCode(BOOL isScanCode);
 void UpdateCombinationKeyStatusAndLED(BYTE isScanCode);
 BOOL kConvertScanCodeToASCIICode(BYTE isScanCode, BYTE *pASCIICode, BOOL *pFlags);
+BOOL kInitializeKeyboard(void);
+BOOL kConvertScanCodeAndPutQueue(BYTE scanCode);
+BOOL kGetKeyFromKeyQueue(KEYDATA *pData);
+BOOL kWaitForACKAndPutOtherScanCode(void);
 
 #endif // __KEYBOARD_H__

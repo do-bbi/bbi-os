@@ -15,6 +15,9 @@ void Main(void) {
     char temp[2] = {0, };
     BYTE tmp, flags;
     int i = 0;
+    KEYDATA data;
+
+    /**************************************************************************/
 
     int posY = 10;
     kPrintString(PRINT_BLANK_POS, posY, "PASS");
@@ -37,11 +40,12 @@ void Main(void) {
     kInitializeIDTables();
     kLoadIDTR(IDTR_BASE_ADDR);
     kPrintString(PRINT_BLANK_POS, posY, "PASS");
-
+    
+    /**************************************************************************/
     posY++;
-    kPrintString(0, posY, "Keyboard Activate...........................[    ]");
+    kPrintString(0, posY, "Keyboard Activate And Queue Initialize......[    ]");
 
-    if(kActivateKeyboard()) {
+    if(kInitializeKeyboard()) {
         kPrintString(PRINT_BLANK_POS, posY, "PASS");
         kChangeKeyboardLED(FALSE, FALSE, FALSE);
     }
@@ -50,6 +54,7 @@ void Main(void) {
         while(TRUE);
     }
     
+    /**************************************************************************/
     posY++;
     kPrintString(0, posY, "PIC Activate & Initialize Interrupt.........[    ]");
     kInitializePIC();
@@ -60,18 +65,18 @@ void Main(void) {
     posY++;
     while(TRUE) {
         // 출력 버퍼(Port 0x60)가 차 있으면 Scan code를 읽을 수 있음
-        if(kIsOutputBufferFull()) {
-            // 출력 버퍼(Port 0x60)에서 Scan code를 읽어서 저장
-            tmp = kGetKeyboardScanCode();
+        if(kGetKeyFromKeyQueue(&data)) {
+            
+            // If key down, print ascii to screen
+            if(data.flags & KEY_FLAGS_DOWN) {
+                // Save ASCII data
+                temp[0] = data.asciiCode;
+                kPrintString(i++, posY, temp);
 
-            // Scan code를 ASCII 코드와 Key Up/Down 정보로 변환
-            if(kConvertScanCodeToASCIICode(tmp, temp, &flags) && (flags & KEY_FLAGS_DOWN))
-                if(flags & KEY_FLAGS_DOWN) {
-                    kPrintString(i++, posY, temp);
-                    // 0이 입력되면 변수를 0으로 나누어 Divide Error Exception(Vector 0) 발생시켜 임시 핸들러 실행
-                    if(temp[0] == '0')
-                        tmp /= 0;
-                }
+                // 0이 입력되면 변수를 0으로 나누어 Divide Error Exception(Vector 0) 발생시켜 임시 핸들러 실행
+                if(temp[0] == '0')
+                    tmp /= 0;
+            }
         }
     }
 }

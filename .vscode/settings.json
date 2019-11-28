@@ -10,6 +10,7 @@
         "utility.h": "c",
         "descriptor.h": "c",
         "interrupthandler.h": "c",
-        "queue.h": "c"
+        "queue.h": "c",
+        "assemblyutil.h": "c"
     }
 }

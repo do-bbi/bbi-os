@@ -1,5 +1,6 @@
 #include "InterruptHandler.h"
 #include "PIC.h"
+#include "Keyboard.h"
 
 // Handler for Common Exceptions
 void kCommonExceptionHandler(int vectorNumber, QWORD errorCode) {
@@ -42,6 +43,7 @@ void kCommonInterruptHandler(int vectorNumber) {
 // Handler for Common Interrupts
 void kKeyboardHandler(int vectorNumber) {
     char buf[] = "[INT:  , ]";
+    BYTE temp;
 
     static int gKeyboardInterruptCount;
 
@@ -53,6 +55,12 @@ void kKeyboardHandler(int vectorNumber) {
     buf[8] = '0' + gKeyboardInterruptCount;
     gKeyboardInterruptCount = (++gKeyboardInterruptCount) % 10;
     kPrintString(70, 1, buf);
+
+    // Read data from keyboard controller & convert it ASCII code to push into queue
+    if(kIsOutputBufferFull()) {
+        temp = kGetKeyboardScanCode();
+        kConvertScanCodeAndPutQueue(temp);
+    }
     
     kSendEOI2PIC(vectorNumber - PIC_IRQ_VECTOR_OFFSET);
 }
