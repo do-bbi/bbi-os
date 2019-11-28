@@ -6,14 +6,18 @@ void kInitializeQueue(QUEUE *pQueue, void *pQueueBuf, int maxDataCnt, int dataSi
     pQueue->maxDataCnt = maxDataCnt;
     pQueue->dataSize = dataSize;
     pQueue->pQueueArray = pQueueBuf;
+
+    pQueue->putIdx = 0;
+    pQueue->getIdx = 0;
+    pQueue->isLastOpPut = FALSE;
 }
 
 BOOL kIsQueueFull(const QUEUE *pQueue) {
-    return pQueue->getIdx == pQueue->putIdx && pQueue->isLastOpPut;
+    return (pQueue->getIdx == pQueue->putIdx) && pQueue->isLastOpPut;
 }
 
 BOOL kIsQueueEmpty(const QUEUE *pQueue) {
-    return pQueue->getIdx == pQueue->putIdx && !(pQueue->isLastOpPut);
+    return (pQueue->getIdx == pQueue->putIdx) && !(pQueue->isLastOpPut);
 }
 
 BOOL kPutQueue(QUEUE *pQueue, const void *pData) {
@@ -35,7 +39,7 @@ BOOL kGetQueue(QUEUE *pQueue, void *pData) {
         return FALSE;
 
     // putIdx 위치의 데이터를, 데이터 크기만큼 복사
-    kMemCpy((char *)pQueue->pQueueArray + (pQueue->dataSize * pQueue->getIdx), pData, pQueue->dataSize);
+    kMemCpy(pData, (char *)pQueue->pQueueArray + (pQueue->dataSize * pQueue->getIdx), pQueue->dataSize);
 
     // Modify getIdx
     pQueue->getIdx = (pQueue->getIdx + 1) % pQueue->maxDataCnt;

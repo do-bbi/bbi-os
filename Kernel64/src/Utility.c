@@ -43,5 +43,5 @@ BOOL kSetInterruptFlag(BOOL enableInterrupt) {
     enableInterrupt ? kEnableInterrupt() : kDisableInterrupt();
 
     // 이전 RFLAGS 레지스터의 IF[9] bit를 확인해서 이전 인터럽트 상태를 반환
-    return rflags & (0x1 << 9);
+    return (rflags & (0x1 << 9)) ? TRUE : FALSE;
 }

@@ -192,7 +192,7 @@ static KEYBOARDMANAGER gKeyboardManager = {0, };
 
 // Queue & Buffer to save key
 static QUEUE gKeyQueue;
-static KEYDATA gKeyQueueBuffer[KEY_MAX_QUEUE_COUNT];
+static KEYDATA gpKeyQueueBuffer[KEY_MAX_QUEUE_COUNT];
 
 // Scan code를 ASCII 코드로 변환하는 테이블
 static KEYMAPPINGENTRY gKeyMappingTable[KEY_MAPPING_TABLE_MAX_COUNT] = {
@@ -397,7 +397,7 @@ BOOL kConvertScanCodeToASCIICode(BYTE scanCode, BYTE *pASCIICode, BOOL *pFlags) 
 
 // Initialize Keyboard
 BOOL kInitializeKeyboard(void) {
-    kInitializeQueue(&gKeyQueue, gKeyQueueBuffer, KEY_MAX_QUEUE_COUNT, sizeof(KEYDATA));
+    kInitializeQueue(&gKeyQueue, gpKeyQueueBuffer, KEY_MAX_QUEUE_COUNT, sizeof(KEYDATA));
 
     // Activate Keyboard
     return kActivateKeyboard();
@@ -419,6 +419,9 @@ BOOL kConvertScanCodeAndPutQueue(BYTE scanCode) {
 
         // Insert Key to queue
         result = kPutQueue(&gKeyQueue, &data);
+
+        // Restore Interrupt flags
+        kSetInterruptFlag(previousInterrupt);
     }
 
     return result;
