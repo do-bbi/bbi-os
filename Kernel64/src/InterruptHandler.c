@@ -17,7 +17,7 @@ void kCommonExceptionHandler(int vectorNumber, QWORD errorCode) {
     kPrintString(0, posY++, "================ Exception Vector Number --------------------->[  ]");
     kPrintString(0, posY++, "===================================================================");
     
-    kPrintString(27, 2, buf);
+    kPrintString(64, 2, buf);
     
     while(TRUE);
 }
