@@ -11,6 +11,7 @@
         "descriptor.h": "c",
         "interrupthandler.h": "c",
         "queue.h": "c",
-        "assemblyutil.h": "c"
+        "assemblyutil.h": "c",
+        "console.h": "c"
     }
 }
