@@ -1,7 +1,7 @@
 #ifndef __CONSOLE__H__
 #define __CONSOLE__H__
 
-#include "Type.h"
+#include "Types.h"
 
 // Video Memory Property
 #define CONSOLE_BACKGROUND_BLACK          (0x00)
