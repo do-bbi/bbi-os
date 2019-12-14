@@ -2,6 +2,9 @@
 #include "AssemblyUtil.h"
 #include <stdarg.h>
 
+// Total sizeof Main Memory (Unit = MBs)
+static int gTotalSizeofRAM = 0;
+
 // 메모리를 특정 값으로 채움
 void kMemSet(void *pDst, BYTE data, int size) {
     int i;
@@ -34,6 +37,19 @@ int kMemCmp(const void *pDst, const void *pSrc, int size) {
     return 0;
 }
 
+// RFLAGS 레지스터의 인터럽트 플래그를 변경하고, 이전 인터럽트 플래그이 상태를 반환
+BOOL kSetInterruptFlag(BOOL enableInterrupt) {
+    QWORD rflags;
+
+    // 이전의 RFLAGS 레지스터 값을 읽은 뒤에 인터럽트 활성/비활성
+    rflags = kReadRFLAGS();
+
+    enableInterrupt ? kEnableInterrupt() : kDisableInterrupt();
+
+    // 이전 RFLAGS 레지스터의 IF[9] bit를 확인해서 이전 인터럽트 상태를 반환
+    return (rflags & (0x1 << 9)) ? TRUE : FALSE;
+}
+
 int kStrLen(const char *pStr) {
     int len = 0;
     while(pStr[len])
@@ -41,9 +57,6 @@ int kStrLen(const char *pStr) {
 
     return len;
 }
-
-// Total sizeof Main Memory (Unit = MBs)
-static int gTotalSizeofRAM = 0;
 
 // Check from 64MBs to end, Must call at booting once
 void kCheckTotalSizeofRAM(void) {
@@ -129,17 +142,4 @@ int kSPrintf(char *pBuf, const char *pFormatStr, ...) {
 
 int kVPrintf(char *pBuf, const char *pFormatStr, va_list ap) {
     // Please Implement Me
-}
-
-// RFLAGS 레지스터의 인터럽트 플래그를 변경하고, 이전 인터럽트 플래그이 상태를 반환
-BOOL kSetInterruptFlag(BOOL enableInterrupt) {
-    QWORD rflags;
-
-    // 이전의 RFLAGS 레지스터 값을 읽은 뒤에 인터럽트 활성/비활성
-    rflags = kReadRFLAGS();
-
-    enableInterrupt ? kEnableInterrupt() : kDisableInterrupt();
-
-    // 이전 RFLAGS 레지스터의 IF[9] bit를 확인해서 이전 인터럽트 상태를 반환
-    return (rflags & (0x1 << 9)) ? TRUE : FALSE;
 }

@@ -19,5 +19,5 @@ QWORD kHexToString(QWORD value, char *pBuf);
 long kDecToString(long value, char *pBuf);
 void kReverseString(char *pBuf);
 int kSPrintf(char *pBuf, const char *pFormatStr, ...);
-int kVPrintf(char *pBuf, const char *pFormatStr, va_list ap);
+int kVSPrintf(char *pBuf, const char *pFormatStr, va_list ap);
 #endif /*__UTILITY_H__*/

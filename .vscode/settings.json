@@ -12,6 +12,8 @@
         "interrupthandler.h": "c",
         "queue.h": "c",
         "assemblyutil.h": "c",
-        "console.h": "c"
+        "console.h": "c",
+        "consoleshell.h": "c",
+        "stdarg.h": "c"
     }
 }
