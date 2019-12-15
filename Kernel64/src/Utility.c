@@ -2,6 +2,13 @@
 #include "AssemblyUtil.h"
 #include <stdarg.h>
 
+/*
+    va_list: 가변 인자 목록, 가변 인자 주소를 저장한 포인터형 변수
+    va_start: 가변 인자를 가져올 수 있도록 주소 설정
+    va_arg: 가변 인자 주소에서 특정 Type 크기만큼 값을 읽음
+    va_end: 가변 인자 처리 후, ap를 NULL로 초기화
+*/
+
 // Total sizeof Main Memory (Unit = MBs)
 static int gTotalSizeofRAM = 0;
 
@@ -109,37 +116,191 @@ long kAtoI(const char *pBuf, int radix) {
 
 // Convert Hexa String to QWORD
 QWORD kHexStringToQword(const char *pBuf) {
-    // Please Implement Me
+    QWORD value = 0;
+    int i;
+
+    for(i = 0; i < pBuf[i]; ++i) {
+        value *= 16;
+        if('A' <= pBuf[i] && pBuf[i] <= 'Z')
+            value = pBuf[i] - 'A' + 10;
+        else if('a' <= pBuf[i] && pBuf[i] <= 'z')
+            value = pBuf[i] - 'a' + 10;
+        else if('0' <= pBuf[i] && pBuf[i] <= '9')
+            value += pBuf[i] - '0';
+        else
+            return -1;
+    }
+
+    return value;
 }
 
 // Convert Decimal String to QWORD
 long kDecStringToLong(const char *pBuf) {
-    // Please Implement Me
+    long value = 0;
+    int i;
+
+    BOOL isNegative = (pBuf[0] == '-') ? 1 : 0;
+
+    for(i = isNegative; i < pBuf[i]; ++i) {
+        value *= 10;
+        value += pBuf[i] - '0';
+    }
+
+    if(isNegative)
+        value = -value;
+
+    return value;
 }
 
 int kItoA(long value, char *pBuf, int radix) {
-    // Please Implement Me
+    int ret;
+
+    switch(radix) {
+        case 16:
+            ret = kHexToString(value, pBuf);
+            break;
+        
+        case 10:
+        default:
+            ret = kDecToString(value, pBuf);
+            break;
+    }
+
+    return ret;
 }
 
 // Convert QWORD to Hexa String
 QWORD kHexToString(QWORD value, char *pBuf) {
-    // Please Implement Me
+    QWORD i, remain;
+
+    if(value == 0) {
+        pBuf[0] = '0';
+        pBuf[1] = '\0';
+
+        return 1;
+    }
+
+    // 버퍼의 1의 자리수 부터 16, 256, ...의 자리 순서로 숫자 삽입
+    for(i = 0; value > 0; ++i) {
+        remain = value % 16;
+        if(10 <= remain)
+            pBuf[i] = 'A' + (remain - 10);
+        else 
+            pBuf[i] = '0' + remain;
+        value /= 16;
+    }
+    pBuf[i] = '\0';
+
+    kReverseString(pBuf);
+    
+    return i;
 }
 
 // Convert QWORD to Decimal String
 long kDecToString(long value, char *pBuf) {
-    // Please Implement Me
+    long i;
+    BOOL isNegative;
+
+    if(value == 0) {
+        pBuf[0] = '0';
+        pBuf[1] = '\0';
+
+        return 1;
+    }
+
+    isNegative = value < 0 ? 1 : 0;
+
+    if(isNegative) {
+        pBuf[0] = '-';
+        value = -value;
+    }
+
+    // 버퍼의 1의 자리수 부터 16, 256, ...의 자리 순서로 숫자 삽입
+    for(i = isNegative; value > 0; ++i) {
+        pBuf[i] = '0' + (value % 10);
+        value /= 10;
+    }
+    pBuf[i] = '\0';
+
+    kReverseString(&pBuf[isNegative]);
+    
+    return i;
 }
 
 // Reverse String
 void kReverseString(char *pBuf) {
-    // Please Implement Me
+    int i, len;
+    char tmp;
+
+    len = kStrLen(pBuf);
+    for(i = 0; i < len / 2; ++i) {
+        // SWAP str[i] <=> str[(len - 1) - i]
+        tmp = pBuf[i];
+        pBuf[i] = pBuf[(len - 1) - i];
+        pBuf[(len - 1) - i] = tmp;
+    }
 }
 
 int kSPrintf(char *pBuf, const char *pFormatStr, ...) {
-    // Please Implement Me
+    va_list ap;
+    int ret;
+
+    va_start(ap, pFormatStr);
+    ret = kVSPrintf(pBuf, pFormatStr, ap);
+    va_end(ap);
+
+    return ret;
 }
 
-int kVPrintf(char *pBuf, const char *pFormatStr, va_list ap) {
-    // Please Implement Me
+int kVSPrintf(char *pBuf, const char *pFormatStr, va_list ap) {
+    QWORD i, j;
+    int fmtLen, cpyLen, bufIdx = 0;
+    char *pCpyStr;
+
+    union Value {
+        QWORD ul;
+        int i;    
+    } value;
+
+    fmtLen = kStrLen(pFormatStr);
+    for(i = 0; i < fmtLen; ++i) {
+        // if prefix is '%?', then translates it to data
+        if(pFormatStr[i] == '%') {
+            switch(pFormatStr[++i]) {
+                case 's':
+                    pCpyStr = (char *)(va_arg(ap, char *));
+                    cpyLen = kStrLen(pCpyStr);
+
+                    kMemCpy(pBuf + bufIdx, pCpyStr, cpyLen);
+                    bufIdx += cpyLen;
+                    break;
+                case 'c':
+                    pBuf[bufIdx++] = (char)(va_arg(ap, int));
+                    break;
+                case 'd':
+                case 'i':
+                    value.i = (int)(va_arg(ap, int));
+                    bufIdx += kItoA(value.i, pBuf + bufIdx, 10);
+                    break;
+                case 'x':   // Print 4 Bytes Hex Value
+                case 'X':
+                    value.ul = (DWORD)(va_arg(ap, DWORD)) & 0xFFFFFFFF;
+                    bufIdx += kItoA(value.ul, pBuf + bufIdx, 16);
+                    break;
+                case 'q':   // Print 8 Bytes Hex Value
+                case 'Q':
+                case 'p':
+                    // 가변 인자에 들어 있는 파라미터를 QWORD 타입으로 변환
+                    // 출력 버퍼에 복사하고, 출력한 길이만큼 버퍼 인덱스를 이동
+                    value.ul = (QWORD)(va_arg(ap, QWORD));
+                    bufIdx += kItoA(value.ul, pBuf + bufIdx, 16);
+                    break;
+                default:
+                    pBuf[bufIdx++] = pFormatStr[i];
+                    break;
+            }
+        }
+        else 
+            pBuf[bufIdx++] = pFormatStr[i];
+    }
 }

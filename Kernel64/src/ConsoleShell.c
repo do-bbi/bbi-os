@@ -39,7 +39,7 @@ void kStartConsoleShell(void) {
                 break;
 
             case KEY_ENTER:
-                kPrint("\n");
+                kPrintf("\n");
 
                 if(0 < commandBufIdx) {
                     // 커맨드 버퍼에 있는 명령 실행

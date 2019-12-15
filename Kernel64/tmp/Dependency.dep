@@ -3,11 +3,16 @@ Keyboard.o: ../src/Keyboard.c ../../Kernel32/src/Types.h \
 PIC.o: ../src/PIC.c ../src/PIC.h ../../Kernel32/src/Types.h
 Utility.o: ../src/Utility.c ../src/Utility.h ../../Kernel32/src/Types.h \
  ../src/AssemblyUtil.h
+Console.o: ../src/Console.c ../src/Utility.h ../../Kernel32/src/Types.h \
+ ../src/Console.h ../src/Keyboard.h
 Descriptor.o: ../src/Descriptor.c ../src/Descriptor.h \
  ../../Kernel32/src/Types.h ../src/Utility.h ../src/ISR.h
 InterruptHandler.o: ../src/InterruptHandler.c ../src/InterruptHandler.h \
  ../../Kernel32/src/Types.h ../src/PIC.h ../src/Keyboard.h
 Queue.o: ../src/Queue.c ../src/Queue.h ../../Kernel32/src/Types.h \
+ ../src/Utility.h
+ConsoleShell.o: ../src/ConsoleShell.c ../src/ConsoleShell.h \
+ ../../Kernel32/src/Types.h ../src/Console.h ../src/Keyboard.h \
  ../src/Utility.h
 Main.o: ../src/Main.c ../../Kernel32/src/Types.h ../src/Keyboard.h \
  ../src/Descriptor.h ../src/AssemblyUtil.h ../src/PIC.h
