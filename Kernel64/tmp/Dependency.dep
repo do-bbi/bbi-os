@@ -8,11 +8,13 @@ Console.o: ../src/Console.c ../src/Utility.h ../../Kernel32/src/Types.h \
 Descriptor.o: ../src/Descriptor.c ../src/Descriptor.h \
  ../../Kernel32/src/Types.h ../src/Utility.h ../src/ISR.h
 InterruptHandler.o: ../src/InterruptHandler.c ../src/InterruptHandler.h \
- ../../Kernel32/src/Types.h ../src/PIC.h ../src/Keyboard.h
+ ../../Kernel32/src/Types.h ../src/PIC.h ../src/Keyboard.h \
+ ../src/Console.h
 Queue.o: ../src/Queue.c ../src/Queue.h ../../Kernel32/src/Types.h \
  ../src/Utility.h
 ConsoleShell.o: ../src/ConsoleShell.c ../src/ConsoleShell.h \
  ../../Kernel32/src/Types.h ../src/Console.h ../src/Keyboard.h \
  ../src/Utility.h
 Main.o: ../src/Main.c ../../Kernel32/src/Types.h ../src/Keyboard.h \
- ../src/Descriptor.h ../src/AssemblyUtil.h ../src/PIC.h
+ ../src/Descriptor.h ../src/AssemblyUtil.h ../src/Console.h \
+ ../src/Utility.h ../src/PIC.h
