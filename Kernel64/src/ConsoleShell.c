@@ -135,11 +135,11 @@ int kGetNextParameter(PARAMLIST *pList, char *pParam) {
 // Functions for COMMAND
 void kHelp(const char *pParamBuf) {
     int i, x, y, cnt;
-    int cmdLen, maxLen;
+    int cmdLen, maxLen = 0;
 
-    kPrintf("==================================================");
-    kPrintf("                MINT64 Shell Help                 ");
-    kPrintf("==================================================");
+    kPrintf("==================================================\n");
+    kPrintf("                BBI OS Shell Help                 \n");
+    kPrintf("==================================================\n");
 
     cnt = sizeof(gCommandTable) / sizeof(SHELLCOMMANDENTRY);
 
