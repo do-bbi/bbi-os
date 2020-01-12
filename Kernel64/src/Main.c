@@ -3,6 +3,7 @@
 #include "Descriptor.h"
 #include "AssemblyUtil.h"
 #include "Console.h"
+#include "ConsoleShell.h"
 #include "Utility.h"
 #include "PIC.h"
 
@@ -21,7 +22,9 @@ void Main(void) {
     int x, y;
 
     /**************************************************************************/
-    int posY = 11;
+    int posY = 10;
+    kSetCursor(PRINT_BLANK_POS, posY);
+    kPrintf("PASS\n"), posY++;
 
     kInitializeConsole(0, posY);
     kPrintf("IA-32e C Language Kernel Start\n"), posY++;

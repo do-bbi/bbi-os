@@ -20,4 +20,5 @@ long kDecToString(long value, char *pBuf);
 void kReverseString(char *pBuf);
 int kSPrintf(char *pBuf, const char *pFormatStr, ...);
 int kVSPrintf(char *pBuf, const char *pFormatStr, va_list ap);
+
 #endif /*__UTILITY_H__*/

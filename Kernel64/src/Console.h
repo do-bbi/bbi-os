@@ -38,7 +38,7 @@
 
 // Video Controller I/O Port Address & Register
 #define VGA_PORT_IDX            (0x3D4)
-#define VGA_PORT_DATA           (0x3D4)
+#define VGA_PORT_DATA           (0x3D5)
 #define VGA_INDEX_UPPERCURSOR   (0x0E)
 #define VGA_INDEX_LOWERCURSOR   (0x0F)
 

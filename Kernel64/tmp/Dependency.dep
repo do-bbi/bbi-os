@@ -17,4 +17,4 @@ ConsoleShell.o: ../src/ConsoleShell.c ../src/ConsoleShell.h \
  ../src/Utility.h
 Main.o: ../src/Main.c ../../Kernel32/src/Types.h ../src/Keyboard.h \
  ../src/Descriptor.h ../src/AssemblyUtil.h ../src/Console.h \
- ../src/Utility.h ../src/PIC.h
+ ../src/ConsoleShell.h ../src/Utility.h ../src/PIC.h

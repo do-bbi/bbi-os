@@ -13,7 +13,7 @@ SHELLCOMMANDENTRY gCommandTable[] = {
 
 void kStartConsoleShell(void) {
     char commandBuf[CONSOLE_SHELL_MAX_COMMANDS_BUFFER_COUNT];
-    int commandBufIdx;
+    int commandBufIdx = 0;
 
     BYTE key;
     int x, y;
@@ -65,6 +65,7 @@ void kStartConsoleShell(void) {
                 key = ' ';
             default:
                 // 버퍼에 공간이 남아 있는 경우
+                // @TEST kPrintf("%d %d\n", commandBufIdx, CONSOLE_SHELL_MAX_COMMANDS_BUFFER_COUNT);
                 if(commandBufIdx < CONSOLE_SHELL_MAX_COMMANDS_BUFFER_COUNT) {
                     commandBuf[commandBufIdx++] = key;
                     kPrintf("%c", key);
@@ -106,6 +107,7 @@ void kExecuteCommand(const char *pCommandBuf) {
 void kInitializeParam(PARAMLIST *pList, const char *pParam) {
     pList->pBuf = pParam;
     pList->len = kStrLen(pParam);
+    pList->cur = 0;
 }
 
 int kGetNextParameter(PARAMLIST *pList, char *pParam) {

@@ -3,6 +3,8 @@
 #include "Console.h"
 #include "Keyboard.h"
 
+#define MAX_BUF_SIZE    (1024)
+
 CONSOLEMANAGER gConsoleManager = {0, };
 
 void kInitializeConsole(int x, int y) {
@@ -24,7 +26,7 @@ void kSetCursor(int x, int y) {
     kOutPortByte(VGA_PORT_DATA, pos >> 8);
 
     // CRTC 컨트롤 Address 레지스터(Port 0x3D4)에 0x0F 전송 -> 하위 커서 위치 레지스터 선택
-    kOutPortByte(VGA_PORT_IDX, VGA_INDEX_UPPERCURSOR);
+    kOutPortByte(VGA_PORT_IDX, VGA_INDEX_LOWERCURSOR);
 
     // CRTC 컨트롤 Data 레지스터(Port 0x3D5)에 커서 하위 Byte 출력
     kOutPortByte(VGA_PORT_DATA, pos & 0xFF);
@@ -34,13 +36,13 @@ void kSetCursor(int x, int y) {
 
 void kGetCursor(int *pX, int *pY) {
     *pX = gConsoleManager.currentPrintOffset % CONSOLE_WIDTH;
-    *pY = gConsoleManager.currentPrintOffset % CONSOLE_WIDTH;
+    *pY = gConsoleManager.currentPrintOffset / CONSOLE_WIDTH;
 }
 
 void kPrintf(const char *pFormatStr, ...) {
     va_list ap;
     
-    char pBuf[1024];
+    char pBuf[MAX_BUF_SIZE];
     int nextPrintOffset;
 
     // Use Variable Parameters
@@ -80,6 +82,7 @@ int kConsolePrintString(const char *pBuf) {
             printOffset++;
         }
         
+        // 출력 위치가 화면을 벗어나면 스크롤 처리
         if(printOffset >= (CONSOLE_HEIGHT * CONSOLE_WIDTH)) {
             // 가장 윗줄을 제외한 나머지를 한 줄 위로 복사
             kMemCpy(CONSOLE_VIDEO_MEM_ADDR, 
@@ -104,7 +107,7 @@ void kClearScreen(void) {
     CHARACTER *pScreen = (CHARACTER *)CONSOLE_VIDEO_MEM_ADDR;
     int i;
 
-    for(int i = 0; i < CONSOLE_WIDTH * CONSOLE_HEIGHT; ++i) {
+    for(i = 0; i < CONSOLE_WIDTH * CONSOLE_HEIGHT; ++i) {
         pScreen[i].bCharacter = ' ';
         pScreen[i].bAttribute = CONSOLE_DEFAULT_TEXTCOLOR;
     }
@@ -138,6 +141,5 @@ void kPrintStringXY(int x, int y, const char *pStr) {
     for(i = 0; pStr[i]; ++i) {
         pScreen[i].bCharacter = pStr[i];
         pScreen[i].bAttribute = CONSOLE_DEFAULT_TEXTCOLOR;
-
     }
 }

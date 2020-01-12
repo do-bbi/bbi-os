@@ -71,7 +71,7 @@ void kCheckTotalSizeofRAM(void) {
     DWORD previousValue;
 
     // Check from 0x4000000(64MB) in 4MB increments
-    pCurrentAddr = (DWORD *)0x400000;
+    pCurrentAddr = (DWORD *)0x4000000;
     while(TRUE) {
         previousValue = *pCurrentAddr;  // Save value of previous memory
 
@@ -303,4 +303,9 @@ int kVSPrintf(char *pBuf, const char *pFormatStr, va_list ap) {
         else 
             pBuf[bufIdx++] = pFormatStr[i];
     }
+
+    // NULL을 추가해 완전한 문자열로 만들고 출력한 문자 길이를 반환
+    pBuf[bufIdx] = '\0';
+    
+    return bufIdx;
 }
