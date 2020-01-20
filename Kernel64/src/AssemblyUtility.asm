@@ -5,7 +5,8 @@ SECTION .text       ; text 섹션 정의
 ; C 언어에서 호출 가능하도록 함수 Export
 global kInPortByte, kOutPortByte
 global kLoadGDTR, kLoadTR, kLoadIDTR
-global kEnableInterrupt, kDisableInterrupt, kReadRFLAGS
+global kEnableInterrupt, kDisableInterrupt
+global kReadRFLAGS, kReadTSC
 
 SECTION .text
 
@@ -69,9 +70,20 @@ kDisableInterrupt:
     cli         ; Deactivate Interrupts
     ret
 
-; Read RFLAGS & return
+; Read RFLAGS & Return
 kReadRFLAGS:
     pushfq      ; Save RFLAGS Register to Stack
     pop rax     ; Save RFLAGS in stack to RAX Register
 
+    ret         ; Return RAX Value
+
+; Read Time Stamp Counter & Return
+kReadTSC:
+    push rdx    ; Store RDX Register value to Stack
+    rdtsc       ; Read Time Stamp Counter & Save it to RDX:RAX
+
+    shl rdx, 32 ; RDX 레지스터 상위 32bit TSC 값을 32bit Left Shift 하고
+    or rax, rdx ; rax 레지스터에 있는 하위 32bit TSC 값을 or 하여 RAX 레지스터에 64bit TSC 값을 저장
+
+    pop rdx     ; Restore previous RDX Register value from stack
     ret         ; Return RAX Value

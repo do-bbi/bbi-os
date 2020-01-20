@@ -11,5 +11,6 @@ void kLoadIDTR(QWORD pIDTR);
 void kEnableInterrupt(void);
 void kDisableInterrupt(void);
 QWORD kReadRFLAGS(void);
+QWORD kReadTSC(void);
 
 #endif  // __ASSEMBLYUTIL_H__

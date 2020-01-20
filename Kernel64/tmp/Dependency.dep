@@ -12,6 +12,8 @@ InterruptHandler.o: ../src/InterruptHandler.c ../src/InterruptHandler.h \
  ../src/Console.h
 Queue.o: ../src/Queue.c ../src/Queue.h ../../Kernel32/src/Types.h \
  ../src/Utility.h
+PIT.o: ../src/PIT.c ../src/PIT.h ../../Kernel32/src/Types.h \
+ ../src/AssemblyUtil.h
 ConsoleShell.o: ../src/ConsoleShell.c ../src/ConsoleShell.h \
  ../../Kernel32/src/Types.h ../src/Console.h ../src/Keyboard.h \
  ../src/Utility.h
