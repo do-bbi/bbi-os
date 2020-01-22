@@ -1,3 +1,5 @@
+RTC.o: ../src/RTC.c ../src/RTC.h ../../Kernel32/src/Types.h \
+ ../src/AssemblyUtil.h
 Keyboard.o: ../src/Keyboard.c ../../Kernel32/src/Types.h \
  ../src/AssemblyUtil.h ../src/Keyboard.h ../src/Queue.h
 PIC.o: ../src/PIC.c ../src/PIC.h ../../Kernel32/src/Types.h
