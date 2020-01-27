@@ -2,13 +2,76 @@
 #include "Console.h"
 #include "Keyboard.h"
 #include "Utility.h"
+#include "PIT.h"
+#include "RTC.h"
+#include "AssemblyUtil.h"
+
+// PIT 컨트롤러의 카운터를 0으로 설정
+void kSetTimer(const char *pParamBuf) {
+    char params[100];
+    PARAMLIST list;
+    long value;
+    BOOL periodic;
+
+    // Init Params
+    kInitializeParam(&list, pParamBuf);
+
+    // Get ms
+    if(kGetNextParameter(&list, params) == 0) {
+        kPrintf("Ex) settimer 10(ms) 1(periodic)\n");
+        return;
+    }
+    value = kAtoI(params, 10);
+
+    // Get periodic
+    if(kGetNextParameter(&list, params) == 0) {
+        kPrintf("Ex) settimer 10(ms) 1(periodic)\n");
+        return;
+    }
+    periodic = kAtoI(params, 10);
+
+    kInitializePIT(value, periodic);
+    kPrintf("Time = %d ms, Periodic = %s Change Complete", value, periodic ? "TRUE" : "FALSE");
+}
+
+// PIT 컨트롤러를 직접 사용하여 #t ms 동안 대기
+void kWaitUsingPIT(const *pParamBuf) {
+
+}
+
+// Read Time Stamp Counter
+void kReadTimeStampCounter(const *pParamBuf) {
+
+}
+
+// Measure Speed of Processor
+void kMeasureProcessorSpeed(const *pParamBuf) {
+    
+}
+
+void kShowDateAndTime(const char *pParamBuf) {
+    BYTE ss, mm, hh;
+    BYTE dayOfWeek, dayOfMonth, month;
+    WORD year;
+
+    kReadRTCTime(&hh, &mm, &ss);
+    kReadRTCDate(&year, &month, &dayOfMonth, &dayOfWeek);
+
+    kPrintf("Date: %d/%d/%d %s, ", year, month, dayOfMonth, kConvertDayOfWeekToString(dayOfWeek));
+    kPrintf("Time: %d:%d:%d\n", hh, mm, ss);
+}
 
 SHELLCOMMANDENTRY gCommandTable[] = {
-    {"help",      "Show Help",                kHelp},
-    {"clear",     "Clear Screen",             kClear},
-    {"totalram",  "Show Total sizeof RAM",    kShowTotalSizeofRAM},
-    {"strtonum",  "Convert Str To Dec/Hex",   kStrToNumTest},
-    {"shutdown",  "Shutdown & Reboot OS",     kShutdown},
+    {"help",        "Show Help",                kHelp},
+    {"clear",       "Clear Screen",             kClear},
+    {"totalram",    "Show Total sizeof RAM",    kShowTotalSizeofRAM},
+    {"strtonum",    "Convert Str To Dec/Hex",   kStrToNumTest},
+    {"shutdown",    "Shutdown & Reboot OS",     kShutdown},
+    {"settimer",    "Set PIT Controller",       kSetTimer},
+    {"wait",        "Wait #t ms Using PIT",     kWaitUsingPIT},
+    {"rdtsc",       "Read Time Stamp Counter",  kReadTimeStampCounter},
+    {"cpuspeed",    "Measyre Processor Speed",  kMeasureProcessorSpeed},
+    {"date",        "Show Date & Time",         kShowDateAndTime},
 };
 
 void kStartConsoleShell(void) {
