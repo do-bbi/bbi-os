@@ -37,5 +37,10 @@ void kClear(const char *pParamBuf);
 void kShutdown(const char *pParamBuf);
 void kStrToNumTest(const char *pParamBuf);
 void kShowTotalSizeofRAM(const char *pParamBuf);
+void kSetTimer(const char *pParamBuf);
+void kWaitUsingPIT(const char *pParamBuf);
+void kReadTimeStampCounter(const char *pParamBuf);
+void kMeasureProcessorSpeed(const char *pParamBuf);
+void kShowDateAndTime(const char *pParamBuf);
 
 #endif  // __CONSOLESHELL_H__

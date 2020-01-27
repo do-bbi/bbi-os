@@ -13,7 +13,7 @@ void kReadRTCTime(BYTE *pHour, BYTE *pMinute, BYTE *pSecond) {
     data = kInPortByte(RTC_CMOSDATA);                   // CMOS Data 레지스터(Port 0x71)에서 분을 읽음
     *pMinute = RTC_BCD_TO_BIN(data);
 
-    kOutPortByte(RTC_CMOSADDRESS, RTC_ADDRESS_HOUR);    // CMOS Memory Address 레지스터(Port 0x70)에 시간을 저장하도록 지정
+    kOutPortByte(RTC_CMOSADDRESS, RTC_ADDRESS_SECOND);    // CMOS Memory Address 레지스터(Port 0x70)에 시간을 저장하도록 지정
     data = kInPortByte(RTC_CMOSDATA);                   // CMOS Data 레지스터(Port 0x71)에서 초를 읽음
     *pSecond = RTC_BCD_TO_BIN(data);
 }

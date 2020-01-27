@@ -18,7 +18,7 @@ PIT.o: ../src/PIT.c ../src/PIT.h ../../Kernel32/src/Types.h \
  ../src/AssemblyUtil.h
 ConsoleShell.o: ../src/ConsoleShell.c ../src/ConsoleShell.h \
  ../../Kernel32/src/Types.h ../src/Console.h ../src/Keyboard.h \
- ../src/Utility.h
+ ../src/Utility.h ../src/PIT.h ../src/RTC.h ../src/AssemblyUtil.h
 Main.o: ../src/Main.c ../../Kernel32/src/Types.h ../src/Keyboard.h \
  ../src/Descriptor.h ../src/AssemblyUtil.h ../src/Console.h \
  ../src/ConsoleShell.h ../src/Utility.h ../src/PIC.h

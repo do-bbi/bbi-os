@@ -6,61 +6,6 @@
 #include "RTC.h"
 #include "AssemblyUtil.h"
 
-// PIT 컨트롤러의 카운터를 0으로 설정
-void kSetTimer(const char *pParamBuf) {
-    char params[100];
-    PARAMLIST list;
-    long value;
-    BOOL periodic;
-
-    // Init Params
-    kInitializeParam(&list, pParamBuf);
-
-    // Get ms
-    if(kGetNextParameter(&list, params) == 0) {
-        kPrintf("Ex) settimer 10(ms) 1(periodic)\n");
-        return;
-    }
-    value = kAtoI(params, 10);
-
-    // Get periodic
-    if(kGetNextParameter(&list, params) == 0) {
-        kPrintf("Ex) settimer 10(ms) 1(periodic)\n");
-        return;
-    }
-    periodic = kAtoI(params, 10);
-
-    kInitializePIT(value, periodic);
-    kPrintf("Time = %d ms, Periodic = %s Change Complete", value, periodic ? "TRUE" : "FALSE");
-}
-
-// PIT 컨트롤러를 직접 사용하여 #t ms 동안 대기
-void kWaitUsingPIT(const *pParamBuf) {
-
-}
-
-// Read Time Stamp Counter
-void kReadTimeStampCounter(const *pParamBuf) {
-
-}
-
-// Measure Speed of Processor
-void kMeasureProcessorSpeed(const *pParamBuf) {
-    
-}
-
-void kShowDateAndTime(const char *pParamBuf) {
-    BYTE ss, mm, hh;
-    BYTE dayOfWeek, dayOfMonth, month;
-    WORD year;
-
-    kReadRTCTime(&hh, &mm, &ss);
-    kReadRTCDate(&year, &month, &dayOfMonth, &dayOfWeek);
-
-    kPrintf("Date: %d/%d/%d %s, ", year, month, dayOfMonth, kConvertDayOfWeekToString(dayOfWeek));
-    kPrintf("Time: %d:%d:%d\n", hh, mm, ss);
-}
-
 SHELLCOMMANDENTRY gCommandTable[] = {
     {"help",        "Show Help",                kHelp},
     {"clear",       "Clear Screen",             kClear},
@@ -267,4 +212,111 @@ void kShutdown(const char *pParamBuf) {
     kPrintf("Press any key to reboot");
     kGetCh();
     kReboot();
+}
+
+// PIT 컨트롤러의 카운터를 0으로 설정
+void kSetTimer(const char *pParamBuf) {
+    char params[100];
+    PARAMLIST list;
+    long value;
+    BOOL periodic;
+
+    // Init Params
+    kInitializeParam(&list, pParamBuf);
+
+    // Get ms
+    if(kGetNextParameter(&list, params) == 0) {
+        kPrintf("Ex) settimer 10(ms) 1(periodic)\n");
+        return;
+    }
+    value = kAtoI(params, 10);
+
+    // Get periodic
+    if(kGetNextParameter(&list, params) == 0) {
+        kPrintf("Ex) settimer 10(ms) 1(periodic)\n");
+        return;
+    }
+    periodic = kAtoI(params, 10);
+
+    kInitializePIT(value, periodic);
+    kPrintf("Time = %d ms, Periodic = %s Change Complete\n", value, periodic ? "TRUE" : "FALSE");
+}
+
+// PIT 컨트롤러를 직접 사용하여 #t ms 동안 대기
+void kWaitUsingPIT(const char *pParamBuf) {
+    char params[100];
+    PARAMLIST list;
+    long ms;
+    int len, i;
+
+    // Init Params
+    kInitializeParam(&list, pParamBuf);
+
+    // Get ms
+    if(kGetNextParameter(&list, params) == 0) {
+        kPrintf("Ex) wait 100(ms)\n");
+        return;
+    }
+    ms = kAtoI(params, 10);
+    kPrintf("Sleep %d ms\n", ms);
+
+    // 인터럽트를 비활성화, PIT 컨트롤러를 이용해 시간 측정
+    kDisableInterrupt();
+    
+    for(i = 0; i < ms / 30; ++i)
+        kWaitUsingDirectPIT(MSTOCOUNT(30));
+    kWaitUsingDirectPIT(MSTOCOUNT(ms % 30));
+
+    kEnableInterrupt();
+
+    kPrintf("Sleep %d ms compelte\n", ms);
+
+    // Restore Timer
+    kInitializePIT(MSTOCOUNT(1), TRUE);
+}
+
+// Read Time Stamp Counter
+void kReadTimeStampCounter(const char *pParamBuf) {
+    QWORD tsc;
+
+    tsc = kReadTSC();
+
+    kPrintf("Value of Time Stamp Counter = %q\n", tsc);
+}
+
+// Measure Speed of Processor
+void kMeasureProcessorSpeed(const char *pParamBuf) {
+    int i;
+    QWORD lastTSC, totalTSC = 0;
+
+    kPrintf("Measuring...");
+
+    // 10초 동안 변화한 타임 스탬프 카운터를 이용하여 프로세서 속도를 간접적으로 측정
+    kDisableInterrupt();
+
+    for(i = 0; i < 200; ++i) {
+        lastTSC = kReadTSC();
+        kWaitUsingDirectPIT(MSTOCOUNT(50));
+        totalTSC += kReadTSC() - lastTSC;
+
+        kPrintf(".");
+    }
+
+    // Restore PIT
+    kInitializePIT(MSTOCOUNT(1), TRUE);
+    kEnableInterrupt();
+
+    kPrintf("\nCPU Speed = %d MHz\n", totalTSC / 10 / 1000 / 1000);
+}
+
+void kShowDateAndTime(const char *pParamBuf) {
+    BYTE ss, mm, hh;
+    BYTE dayOfWeek, dayOfMonth, month;
+    WORD year;
+
+    kReadRTCTime(&hh, &mm, &ss);
+    kReadRTCDate(&year, &month, &dayOfMonth, &dayOfWeek);
+
+    kPrintf("Date: %d/%d/%d %s, ", year, month, dayOfMonth, kConvertDayOfWeekToString(dayOfWeek));
+    kPrintf("Time: %d:%d:%d\n", hh, mm, ss);
 }
