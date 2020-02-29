@@ -6,6 +6,8 @@ OBJCOPY64 = x86_64-pc-linux-objcopy -j .text -j .data -j .rodata -j .bss -S -O b
 
 OBJDIR = tmp
 SRCDIR = src
+INC32DIR = ../../Kernel32/include
+INC64DIR = ../include
 
 all: clean prepare Kernel64.bin
 
@@ -31,9 +33,8 @@ clean:
 	rm -f $(OBJDIR)/*.*
 
 TARGET = EntryPoint
-INCDIR = ../../Kernel32/src
 
-LDFLAGS = $(foreach dir, $(INCDIR), -I$(dir))
+LDFLAGS = $(foreach dir, $(INC32DIR), -I$(dir))
 
 SRC = $(wildcard ../$(SRCDIR)/*.c)
 ASM = $(wildcard ../$(SRCDIR)/*.asm)
@@ -41,13 +42,13 @@ OBJ = $(subst $(TARGET).o, , $(notdir $(patsubst %.c, %.o, $(SRC))))
 ASMOBJ = $(notdir $(patsubst %.asm, %.o, $(ASM)))
 
 %.o : ../$(SRCDIR)/%.c
-	$(GCC64) $(LDFLAGS) -c $<
+	$(GCC64) $(LDFLAGS) -c -I$(INC64DIR) $<
 
 %.o : ../$(SRCDIR)/%.asm
 	$(NASM64) -o $@ $<
 
 InternalDependency:
-	$(GCC64) $(LDFLAGS) -MM $(SRC) > Dependency.dep
+	$(GCC64) $(LDFLAGS) -MM $(SRC) -I$(INC64DIR) > Dependency.dep
 
 Kernel64.elf: $(TARGET).o $(OBJ) $(ASMOBJ)
 	$(LD64) -o $@ $^

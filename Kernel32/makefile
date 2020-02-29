@@ -7,6 +7,7 @@ OBJCOPY32 = x86_64-pc-linux-objcopy -j .text -j .data -j .rodata -j .bss -S -O b
 
 OBJDIR = tmp
 SRCDIR = src
+INCDIR = ../include
 
 all: clean prepare Kernel32.bin
 
@@ -41,13 +42,13 @@ OBJ = $(subst $(TARGET).o, , $(notdir $(patsubst %.c, %.o, $(SRC))))
 ASMOBJ = $(notdir $(patsubst %.asm, %.o, $(ASM)))
 
 %.o : ../$(SRCDIR)/%.c
-	$(GCC32) -c $<
+	$(GCC32) -c -I$(INCDIR) $<
 
 %.o : ../$(SRCDIR)/%.asm
 	$(NASM32) -o $@ $<
 
 InternalDependency:
-	$(GCC32) -MM $(SRC) > Dependency.dep
+	$(GCC32) -MM $(SRC) -I$(INCDIR) > Dependency.dep
 
 Kernel32.elf: $(TARGET).o $(OBJ) $(ASMOBJ)
 	$(LD32) -o $@ $^
