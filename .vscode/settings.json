@@ -16,6 +16,7 @@
         "consoleshell.h": "c",
         "stdarg.h": "c",
         "rtc.h": "c",
-        "pit.h": "c"
+        "pit.h": "c",
+        "task.h": "c"
     }
 }

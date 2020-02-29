@@ -4,6 +4,7 @@
 #include "Utility.h"
 #include "PIT.h"
 #include "RTC.h"
+#include "Task.h"
 #include "AssemblyUtil.h"
 
 SHELLCOMMANDENTRY gCommandTable[] = {
@@ -17,7 +18,11 @@ SHELLCOMMANDENTRY gCommandTable[] = {
     {"rdtsc",       "Read Time Stamp Counter",  kReadTimeStampCounter},
     {"cpuspeed",    "Measyre Processor Speed",  kMeasureProcessorSpeed},
     {"date",        "Show Date & Time",         kShowDateAndTime},
+    {"createtask",  "Create Test Task",         kCreateTestTask},
 };
+
+static TCB      gTask[2] = {0, };
+static QWORD    gStack[1024] = {0, };
 
 void kStartConsoleShell(void) {
     char commandBuf[CONSOLE_SHELL_MAX_COMMANDS_BUFFER_COUNT];
@@ -319,4 +324,40 @@ void kShowDateAndTime(const char *pParamBuf) {
 
     kPrintf("Date: %d/%d/%d %s, ", year, month, dayOfMonth, kConvertDayOfWeekToString(dayOfWeek));
     kPrintf("Time: %d:%d:%d\n", hh, mm, ss);
+}
+
+// Task switching Task
+void kTestTask(void) {
+    int i = 0;
+
+    while(TRUE) {
+        // Print Message & Wait For Keystroke
+        kPrintf("[%d] This message is from kTestTask, "
+                "Press any key to switch kConsoleShell", i++);
+        kGetCh();
+
+        // If Key Input Occurs, Switch Task
+        kSwitchContext(&(gTask[1].context), &(gTask[0].context));
+    }
+}
+
+void kCreateTestTask(const char *pParamBuf) {
+    KEYDATA data;
+    int i = 0;
+
+    // Setup Task
+    kSetUpTask(&(gTask[1]), 1, 0, (QWORD)kTestTask, &gStack, sizeof(gStack));
+
+    // Run until q key is input
+    while (TRUE) {
+        // Print Message & Wait For Keystroke
+        kPrintf("[%d] This message is from kTestTask, "
+                "Press any key to switch kConsoleShell", i++);
+        
+        if(kGetCh() == 'q')
+            break;
+
+        // If Key Input is not 'q', Switch Task
+        kSwitchContext(&(gTask[1].context), &(gTask[0].context));
+    }
 }
