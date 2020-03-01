@@ -39,7 +39,7 @@
 #pragma pack(push, 1)
 
 typedef struct kContextStruct {
-    QWORD vRegister[TASK_REGISTER_COUNT];
+    QWORD registers[TASK_REGISTER_COUNT];
 } CONTEXT;
 
 typedef struct kTaskControlBlockStruct {

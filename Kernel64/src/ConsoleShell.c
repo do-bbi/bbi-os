@@ -21,9 +21,6 @@ SHELLCOMMANDENTRY gCommandTable[] = {
     {"createtask",  "Create Test Task",         kCreateTestTask},
 };
 
-static TCB      gTask[2] = {0, };
-static QWORD    gStack[1024] = {0, };
-
 void kStartConsoleShell(void) {
     char commandBuf[CONSOLE_SHELL_MAX_COMMANDS_BUFFER_COUNT];
     int commandBufIdx = 0;
@@ -326,18 +323,21 @@ void kShowDateAndTime(const char *pParamBuf) {
     kPrintf("Time: %d:%d:%d\n", hh, mm, ss);
 }
 
+static TCB      gTasks[2] = {0, };
+static QWORD    gStacks[1024] = {0, };
+
 // Task switching Task
 void kTestTask(void) {
     int i = 0;
 
     while(TRUE) {
         // Print Message & Wait For Keystroke
-        kPrintf("[%d] This message is from kTestTask, "
-                "Press any key to switch kConsoleShell", i++);
+        kPrintf("[%d] This message is from kConsoleShell, "
+                "Press any key to switch kTestTask\n", i++);
         kGetCh();
 
         // If Key Input Occurs, Switch Task
-        kSwitchContext(&(gTask[1].context), &(gTask[0].context));
+        kSwitchContext(&(gTasks[1].context), &(gTasks[0].context));
     }
 }
 
@@ -346,18 +346,18 @@ void kCreateTestTask(const char *pParamBuf) {
     int i = 0;
 
     // Setup Task
-    kSetUpTask(&(gTask[1]), 1, 0, (QWORD)kTestTask, &gStack, sizeof(gStack));
+    kSetUpTask(&gTasks[1], 1, 0, (QWORD)kTestTask, &gStacks, sizeof(gStacks));
 
     // Run until q key is input
     while (TRUE) {
         // Print Message & Wait For Keystroke
         kPrintf("[%d] This message is from kTestTask, "
-                "Press any key to switch kConsoleShell", i++);
+                "Press any key to switch kConsoleShell\n", i++);
         
         if(kGetCh() == 'q')
             break;
 
         // If Key Input is not 'q', Switch Task
-        kSwitchContext(&(gTask[1].context), &(gTask[0].context));
+        kSwitchContext(&(gTasks[0].context), &(gTasks[1].context));
     }
 }

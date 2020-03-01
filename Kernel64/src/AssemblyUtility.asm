@@ -116,7 +116,7 @@ kReadTSC:
 
     push fs
     push gs 
-%endmacro       ; 매크로 끝
+%endmacro
 
 
 ; Macro to Restore Context
@@ -144,7 +144,7 @@ kReadTSC:
     pop rbx
     pop rax
     pop rbp        
-%endmacro       ; 매크로 끝
+%endmacro
 
 ; Current Context에 현재 콘텍스트를 저장하고 Next Task에서 콘텍스트를 복구
 ;   PARAM: Current Context, Next Context
