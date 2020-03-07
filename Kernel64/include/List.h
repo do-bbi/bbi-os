@@ -22,7 +22,7 @@ struct kListItemExampleStruct {
 */
 
 // Data Structure to manage list
-typedef strcut kListManagerStruct {
+typedef struct kListManagerStruct {
     int itemCount;
 
     void *pHead;    // Address of First Item
@@ -36,6 +36,7 @@ void kInitializeList(LIST *pList);
 int kGetListCount(const LIST *pList);
 void kAddListToTail(LIST *pList, void *pItems);
 void kAddListToHead(LIST *pList, void *pItems);
+void *kRemoveList(LIST *pList, QWORD id);
 void *kRemoveListFromHead(LIST *pList);
 void *kRemoveListFromTail(LIST *pList);
 void *kFindList(const LIST *pList, QWORD id);
