@@ -4,6 +4,8 @@
 #include <stdarg.h>
 #include "Types.h"
 
+extern volatile QWORD gTickCount;
+
 void kMemSet(void *pDst, BYTE data, int size);
 int kMemCpy(void *pDst, const void *pSrc, int size);
 int kMemCmp(const void *pDst, const void *pSrc, int size);
@@ -20,5 +22,6 @@ long kDecToString(long value, char *pBuf);
 void kReverseString(char *pBuf);
 int kSPrintf(char *pBuf, const char *pFormatStr, ...);
 int kVSPrintf(char *pBuf, const char *pFormatStr, va_list ap);
+QWORD kGetTickCount(void);
 
 #endif /*__UTILITY_H__*/

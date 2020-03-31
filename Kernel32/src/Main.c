@@ -104,12 +104,12 @@ void Main(void) {
 }
 
 void kPrintString(int iX, int iY, const char *pcString) {
-    CHARACTER *pstScreen = (CHARACTER *)VIDEO_MEM_ADDR;    // Video Memory Addr
+    VGATEXT *pstScreen = (VGATEXT *)VIDEO_MEM_ADDR;    // Video Memory Addr
     int i;
 
     pstScreen += (iY * 80) + iX;
     for(i = 0; pcString[i]; ++i)
-        pstScreen[i].bCharacter = pcString[i];
+        pstScreen[i].ch = pcString[i];
 }
 
 // IA-32e 모드용 커널 영역 0으로 초기화

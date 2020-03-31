@@ -33,7 +33,7 @@ TCB *kAllocateTCB(void) {
     for(i = 0; i < gTCBPoolManager.maxCount; ++i) {
         // if id[32] == 0, then non-allocated 
         if((gTCBPoolManager.pStartAddr[i].link.id >> 32) == 0) {
-            pEmptyTCB = g(gTCBPoolManager.pStartAddr[i]);
+            pEmptyTCB = &(gTCBPoolManager.pStartAddr[i]);
             break;
         }
     }

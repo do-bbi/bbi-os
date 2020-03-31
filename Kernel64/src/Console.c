@@ -62,7 +62,7 @@ void kPrintf(const char *pFormatStr, ...) {
  }
 
 int kConsolePrintString(const char *pBuf) {
-    CHARACTER *pScreen = (CHARACTER *)CONSOLE_VIDEO_MEM_ADDR;
+    VGATEXT *pScreen = (VGATEXT *)CONSOLE_VIDEO_MEM_ADDR;
 
     int i, j, len;
     int printOffset;
@@ -77,8 +77,8 @@ int kConsolePrintString(const char *pBuf) {
         else if(pBuf[i] == '\t')
             printOffset += (8 - (printOffset % 8));
         else {
-            pScreen[printOffset].bCharacter = pBuf[i];
-            pScreen[printOffset].bAttribute = CONSOLE_DEFAULT_TEXTCOLOR;
+            pScreen[printOffset].ch = pBuf[i];
+            pScreen[printOffset].attr = CONSOLE_DEFAULT_TEXTCOLOR;
             printOffset++;
         }
         
@@ -86,13 +86,13 @@ int kConsolePrintString(const char *pBuf) {
         if(printOffset >= (CONSOLE_HEIGHT * CONSOLE_WIDTH)) {
             // 가장 윗줄을 제외한 나머지를 한 줄 위로 복사
             kMemCpy(CONSOLE_VIDEO_MEM_ADDR, 
-                CONSOLE_VIDEO_MEM_ADDR + CONSOLE_WIDTH * sizeof(CHARACTER),
-                (CONSOLE_HEIGHT - 1) * CONSOLE_WIDTH * sizeof(CHARACTER));
+                CONSOLE_VIDEO_MEM_ADDR + CONSOLE_WIDTH * sizeof(VGATEXT),
+                (CONSOLE_HEIGHT - 1) * CONSOLE_WIDTH * sizeof(VGATEXT));
 
             // 가장 마지막 라인은 공백으로 채움
             for(j = (CONSOLE_HEIGHT - 1) * (CONSOLE_WIDTH); j < (CONSOLE_HEIGHT * CONSOLE_WIDTH); ++j) {
-                pScreen[j].bCharacter = ' ';
-                pScreen[j].bAttribute = CONSOLE_DEFAULT_TEXTCOLOR;
+                pScreen[j].ch = ' ';
+                pScreen[j].attr = CONSOLE_DEFAULT_TEXTCOLOR;
             }
 
             // 출력할 위치를 가장 아래쪽 라인의 처음으로 설정
@@ -104,12 +104,12 @@ int kConsolePrintString(const char *pBuf) {
 }
 
 void kClearScreen(void) {
-    CHARACTER *pScreen = (CHARACTER *)CONSOLE_VIDEO_MEM_ADDR;
+    VGATEXT *pScreen = (VGATEXT *)CONSOLE_VIDEO_MEM_ADDR;
     int i;
 
     for(i = 0; i < CONSOLE_WIDTH * CONSOLE_HEIGHT; ++i) {
-        pScreen[i].bCharacter = ' ';
-        pScreen[i].bAttribute = CONSOLE_DEFAULT_TEXTCOLOR;
+        pScreen[i].ch = ' ';
+        pScreen[i].attr = CONSOLE_DEFAULT_TEXTCOLOR;
     }
 
     // 커서를 화면 상단으로 이동
@@ -132,14 +132,14 @@ BYTE kGetCh(void) {
 
 // Print String at Position(X, Y)
 void kPrintStringXY(int x, int y, const char *pStr) {
-    CHARACTER *pScreen = (CHARACTER *)CONSOLE_VIDEO_MEM_ADDR;
+    VGATEXT *pScreen = (VGATEXT *)CONSOLE_VIDEO_MEM_ADDR;
     int i;
 
     // Calculate position to print string
     pScreen += y * CONSOLE_WIDTH + x;
 
     for(i = 0; pStr[i]; ++i) {
-        pScreen[i].bCharacter = pStr[i];
-        pScreen[i].bAttribute = CONSOLE_DEFAULT_TEXTCOLOR;
+        pScreen[i].ch = pStr[i];
+        pScreen[i].attr = CONSOLE_DEFAULT_TEXTCOLOR;
     }
 }

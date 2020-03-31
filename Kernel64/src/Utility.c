@@ -12,6 +12,9 @@
 // Total sizeof Main Memory (Unit = MBs)
 static int gTotalSizeofRAM = 0;
 
+// Counter for PIT Controller Ticked
+volatile QWORD gTickCount = 0;
+
 // 메모리를 특정 값으로 채움
 void kMemSet(void *pDst, BYTE data, int size) {
     int i;

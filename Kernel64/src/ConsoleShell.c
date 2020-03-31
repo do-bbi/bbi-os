@@ -341,23 +341,134 @@ void kTestTask(void) {
     }
 }
 
-void kCreateTestTask(const char *pParamBuf) {
-    KEYDATA data;
-    int i = 0;
+// Task 1 - Print Texts while Rotating the Screen Border
+void kTestTask1(void) {
+    BYTE data;
+    int i = 0, cursorX = 0, cursorY = 0, margin;
+    VGATEXT *pScreen = (VGATEXT *)CONSOLE_VIDEO_MEM_ADDR;
 
-    // Setup Task
-    kSetUpTask(&gTasks[1], 1, 0, (QWORD)kTestTask, &gStacks, sizeof(gStacks));
+    TCB *pRunningTask;
 
-    // Run until q key is input
-    while (TRUE) {
-        // Print Message & Wait For Keystroke
-        kPrintf("[%d] This message is from kTestTask, "
-                "Press any key to switch kConsoleShell\n", i++);
-        
-        if(kGetCh() == 'q')
+    // Get Running Task ID to Use Screen Offset
+    pRunningTask = kGetRunningTask();
+    margin = (pRunningTask->link.id & 0xFFFFFFFF) % 10;
+
+    // Print Texts while Rotating the Screen Border
+    while(TRUE) {
+        switch (i)
+        {
+        case 0:
+            cursorX++;
+            if((CONSOLE_WIDTH - margin) <= cursorX)
+                i = 1;
             break;
+        case 1:
+            cursorY++;
+            if((CONSOLE_HEIGHT - margin) <= cursorY)
+                i = 2;
+            break;
+        case 2:
+            cursorX--;
+            if(cursorX < margin)
+                i = 3;
+            break;
+        case 3:
+            cursorY--;
+            if(cursorY < margin)
+                i = 0;
+            break;
+        
+        default:
+            break;
+        }
 
-        // If Key Input is not 'q', Switch Task
-        kSwitchContext(&(gTasks[0].context), &(gTasks[1].context));
+        // Set Character & Font Color
+        pScreen[cursorY * CONSOLE_WIDTH + cursorX].ch = data;
+        pScreen[cursorY * CONSOLE_WIDTH + cursorX].attr = data & 0x0F;
+        data++;
+
+        // Context Switching
+        kSchedule();
     }
 }
+
+// Task 2 - Print a Rotating Pinwheel at a Specific Location with referring to Task ID
+void kTestTask2(void) {
+    int i = 0, offset;
+    VGATEXT *pScreen = (VGATEXT *)CONSOLE_VIDEO_MEM_ADDR;
+
+    TCB *pRunningTask;
+    char pinwheel[4] = {'-', '\\', '|', '/'};
+
+    // Get Running Task ID to Use Screen Offset
+    pRunningTask = kGetRunningTask();
+    offset = (pRunningTask->link.id & 0xFFFFFFFF) * 2;
+    offset = CONSOLE_WIDTH * CONSOLE_HEIGHT - (offset % (CONSOLE_WIDTH * CONSOLE_HEIGHT));
+    // offset = 1 + (offset % (CONSOLE_WIDTH * CONSOLE_HEIGHT));
+
+    // Print Texts while Rotating the Screen Border
+    while(TRUE) {
+        pScreen[offset].ch = pinwheel[i % 4];
+        pScreen[offset].attr = (offset % 15) + 1;
+        i++;
+
+        kSchedule();
+    }
+}
+
+void kCreateTestTask(const char *pParamBuf) {
+    PARAMLIST params;
+    char types[30];
+    char counts[30];
+    int i = 0;
+
+    // Get Params
+    kInitializeParam(&params, pParamBuf);
+    kGetNextParameter(&params, types);
+    kGetNextParameter(&params, counts);
+
+    switch (kAtoI(types, 10))
+    {
+    // Create Task 1
+    case 1:
+        for(i = 0; i < kAtoI(counts, 10); ++i) {
+            if(kCreateTask(0, (QWORD)kTestTask1) == NULL)
+                break;
+        }
+
+        kPrintf("Task1 %d Created\n", i);
+        break;
+    
+    // Create Task 2
+    case 2:
+    default:
+        for(i = 0; i < kAtoI(counts, 10); ++i) {
+            if(kCreateTask(0, (QWORD)kTestTask2) == NULL)
+                break;
+        }
+        
+        kPrintf("Task2 %d Created\n", i);
+        break;
+    }
+}
+
+// void kCreateTestTask(const char *pParamBuf) {
+//     KEYDATA data;
+//     int i = 0;
+
+//     // Setup Task
+//     kSetUpTask(&gTasks[1], 1, 0, (QWORD)kTestTask, &gStacks, sizeof(gStacks));
+
+//     // Run until q key is input
+//     while (TRUE) {
+//         // Print Message & Wait For Keystroke
+//         kPrintf("[%d] This message is from kTestTask, "
+//                 "Press any key to switch kConsoleShell\n", i++);
+        
+//         if(kGetCh() == 'q')
+//             break;
+
+//         // If Key Input is not 'q', Switch Task
+//         kSwitchContext(&(gTasks[0].context), &(gTasks[1].context));
+//     }
+// }

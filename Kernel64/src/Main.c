@@ -1,11 +1,13 @@
 #include "Types.h"
 #include "Keyboard.h"
 #include "Descriptor.h"
-#include "AssemblyUtil.h"
+// #include "AssemblyUtil.h"
+// #include "Utility.h"
+#include "PIC.h"
 #include "Console.h"
 #include "ConsoleShell.h"
-#include "Utility.h"
-#include "PIC.h"
+#include "Task.h"
+#include "PIT.h"
 
 #define VIDEO_MEM_ADDR  (0xB8000)
 
@@ -51,6 +53,25 @@ void Main(void) {
 
     kSetCursor(PRINT_BLANK_POS, posY);
     kPrintf("PASS\n"), posY++;
+
+    /**************************************************************************/
+    kPrintf("Check Total size of RAM.....................[    ]");
+    kCheckTotalSizeofRAM();
+    
+    kSetCursor(PRINT_BLANK_POS, posY);
+    kPrintf("PASS\n"), posY++;
+
+    kPrintf("Total sizeof RAM = %d MB\n", kGetTotalRAMSize()), posY++;
+
+    /**************************************************************************/
+    kPrintf("TCB Pool And Scheduler Initialize...........[    ]");
+    kInitializeScheduler();
+    
+    kSetCursor(PRINT_BLANK_POS, posY);
+    kPrintf("PASS\n"), posY++;
+
+    // Set Interrupt to Occur Once per 1ms
+    kInitializePIT(MSTOCOUNT(1), 1);
     
     /**************************************************************************/
     kPrintf("Keyboard Activate And Queue Initialize......[    ]");
@@ -65,15 +86,6 @@ void Main(void) {
         kPrintf("FAIL\n"), posY++;
         while(TRUE);
     }
-
-    /**************************************************************************/
-    kPrintf("Total sizeof RAM............................[    ]");
-    kCheckTotalSizeofRAM();
-    
-    kSetCursor(PRINT_BLANK_POS, posY);
-    kPrintf("PASS\n"), posY++;
-
-    kPrintf("Total sizeof RAM = %d MB\n", kGetTotalRAMSize()), posY++;
     
     /**************************************************************************/
     kPrintf("PIC Activate & Initialize Interrupt.........[    ]");
@@ -105,10 +117,10 @@ void Main(void) {
 }
 
 void kPrintString(int iX, int iY, const char *pcString) {
-    CHARACTER *pstScreen = (CHARACTER *)VIDEO_MEM_ADDR;    // Video Memory Addr
+    VGATEXT *pstScreen = (VGATEXT *)VIDEO_MEM_ADDR;    // Video Memory Addr
     int i;
 
     pstScreen += (iY * 80) + iX;
     for(i = 0; pcString[i]; ++i)
-        pstScreen[i].bCharacter = pcString[i];
+        pstScreen[i].ch = pcString[i];
 }

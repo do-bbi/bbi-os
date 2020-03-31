@@ -1,27 +1,35 @@
 Task.o: ../src/Task.c ../include/Task.h ../../Kernel32/include/Types.h \
- ../src/Descriptor.h
-RTC.o: ../src/RTC.c ../src/RTC.h ../../Kernel32/include/Types.h \
- ../src/AssemblyUtil.h
+ ../include/List.h ../include/Descriptor.h ../include/Utility.h
+RTC.o: ../src/RTC.c ../include/RTC.h ../../Kernel32/include/Types.h \
+ ../include/AssemblyUtil.h ../include/Task.h ../include/List.h
 Keyboard.o: ../src/Keyboard.c ../../Kernel32/include/Types.h \
- ../src/AssemblyUtil.h ../src/Keyboard.h ../src/Queue.h
-PIC.o: ../src/PIC.c ../src/PIC.h ../../Kernel32/include/Types.h
-Utility.o: ../src/Utility.c ../src/Utility.h \
- ../../Kernel32/include/Types.h ../src/AssemblyUtil.h
-Console.o: ../src/Console.c ../src/Utility.h \
- ../../Kernel32/include/Types.h ../src/Console.h ../src/Keyboard.h
-Descriptor.o: ../src/Descriptor.c ../src/Descriptor.h \
- ../../Kernel32/include/Types.h ../src/Utility.h ../src/ISR.h
-InterruptHandler.o: ../src/InterruptHandler.c ../src/InterruptHandler.h \
- ../../Kernel32/include/Types.h ../src/PIC.h ../src/Keyboard.h \
- ../src/Console.h
-Queue.o: ../src/Queue.c ../src/Queue.h ../../Kernel32/include/Types.h \
- ../src/Utility.h
-PIT.o: ../src/PIT.c ../src/PIT.h ../../Kernel32/include/Types.h \
- ../src/AssemblyUtil.h
-ConsoleShell.o: ../src/ConsoleShell.c ../src/ConsoleShell.h \
- ../../Kernel32/include/Types.h ../src/Console.h ../src/Keyboard.h \
- ../src/Utility.h ../src/PIT.h ../src/RTC.h ../include/Task.h \
- ../src/AssemblyUtil.h
-Main.o: ../src/Main.c ../../Kernel32/include/Types.h ../src/Keyboard.h \
- ../src/Descriptor.h ../src/AssemblyUtil.h ../src/Console.h \
- ../src/ConsoleShell.h ../src/Utility.h ../src/PIC.h
+ ../include/AssemblyUtil.h ../include/Task.h ../include/List.h \
+ ../include/Keyboard.h ../include/Queue.h
+PIC.o: ../src/PIC.c ../include/PIC.h ../../Kernel32/include/Types.h
+Utility.o: ../src/Utility.c ../include/Utility.h \
+ ../../Kernel32/include/Types.h ../include/AssemblyUtil.h \
+ ../include/Task.h ../include/List.h
+Console.o: ../src/Console.c ../include/Utility.h \
+ ../../Kernel32/include/Types.h ../include/Console.h \
+ ../include/Keyboard.h
+Descriptor.o: ../src/Descriptor.c ../include/Descriptor.h \
+ ../../Kernel32/include/Types.h ../include/Utility.h ../include/ISR.h
+InterruptHandler.o: ../src/InterruptHandler.c \
+ ../include/InterruptHandler.h ../../Kernel32/include/Types.h \
+ ../include/PIC.h ../include/Keyboard.h ../include/Console.h \
+ ../include/Utility.h ../include/Task.h ../include/List.h \
+ ../include/Descriptor.h
+List.o: ../src/List.c ../include/List.h ../../Kernel32/include/Types.h
+Queue.o: ../src/Queue.c ../include/Queue.h ../../Kernel32/include/Types.h \
+ ../include/Utility.h
+PIT.o: ../src/PIT.c ../include/PIT.h ../../Kernel32/include/Types.h \
+ ../include/AssemblyUtil.h ../include/Task.h ../include/List.h
+ConsoleShell.o: ../src/ConsoleShell.c ../include/ConsoleShell.h \
+ ../../Kernel32/include/Types.h ../include/Console.h \
+ ../include/Keyboard.h ../include/Utility.h ../include/PIT.h \
+ ../include/RTC.h ../include/Task.h ../include/List.h \
+ ../include/AssemblyUtil.h ../include/Task.h
+Main.o: ../src/Main.c ../../Kernel32/include/Types.h \
+ ../include/Keyboard.h ../include/Descriptor.h ../include/PIC.h \
+ ../include/Console.h ../include/ConsoleShell.h ../include/Task.h \
+ ../include/List.h ../include/PIT.h
