@@ -37,7 +37,7 @@ void kCommonInterruptHandler(int vectorNumber) {
     // Count of Interrupts
     buf[8] = '0' + gCommonInterruptCount;
     gCommonInterruptCount = (++gCommonInterruptCount) % 10;
-    kPrintStringXY(70, 0, buf);
+    kPrintStringXY(70, 2, buf);
     
     kSendEOI2PIC(vectorNumber - PIC_IRQ_VECTOR_OFFSET);
 }
@@ -77,7 +77,7 @@ void kTimerHandler(int vectorNumber) {
 
     msgBuffer[8] = '0' + gTimerInterruptCount;
     gTimerInterruptCount = (gTimerInterruptCount + 1) % 10;
-    kPrintStringXY(70, 2, msgBuffer);
+    kPrintStringXY(70, 0, msgBuffer);
 
     // Send EOI
     kSendEOI2PIC(vectorNumber - PIC_IRQ_VECTOR_OFFSET);

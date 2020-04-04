@@ -60,8 +60,7 @@ typedef struct kContextStruct {
 typedef struct kTaskControlBlockStruct {
     LISTLINK link;
     CONTEXT context;
-
-    QWORD id;
+    
     QWORD flags;
 
     void *pStackAddr;
@@ -98,7 +97,7 @@ void kInitializeTCBPool(void);
 TCB *kAllocateTCB(void);
 void kFreeTCB(QWORD id);
 TCB *kCreateTask(QWORD flags, QWORD entryPointAddr);
-void kSetUpTask(TCB *pTCB, QWORD id, QWORD flags, QWORD entryPointerAddr, void *pStackAddr, QWORD stackSize);
+void kSetUpTask(TCB *pTCB, QWORD flags, QWORD entryPointerAddr, void *pStackAddr, QWORD stackSize);
 
 // Function For Scheduler
 void kInitializeScheduler(void);

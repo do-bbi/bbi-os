@@ -72,13 +72,16 @@ TCB *kCreateTask(QWORD flags, QWORD entryPointAddr) {
         return NULL;
 
     pStackAddr = (void *)(TASK_STACK_POOL_ADDR + (TASK_STACK_SIZE * (pTask->link.id & 0xFFFFFFFF)));
+
+    // TCB를 설정한 후 준비 리스트에 삽입하여 스케줄링될 수 있도록 함
+    kSetUpTask(pTask, flags, entryPointAddr, pStackAddr, TASK_STACK_SIZE);
     kAddTaskToReadyList(pTask);
 
     return pTask;
 }
 
 // Set TCB using Function Paramter
-void kSetUpTask(TCB *pTCB, QWORD id, QWORD flags, QWORD entryPointAddr, void *pStackAddr, QWORD stackSize) {
+void kSetUpTask(TCB *pTCB, QWORD flags, QWORD entryPointAddr, void *pStackAddr, QWORD stackSize) {
     // 콘텍스트 초기화
     kMemSet(pTCB->context.registers, 0, sizeof(pTCB->context.registers));
     
@@ -101,7 +104,6 @@ void kSetUpTask(TCB *pTCB, QWORD id, QWORD flags, QWORD entryPointAddr, void *pS
     pTCB->context.registers[TASK_RFLAGS_OFFSET] |= (0x1 << 9);
     
     // ID 및 스택, 그리고 플래그 저장
-    pTCB->id = id;
     pTCB->pStackAddr = pStackAddr;
     pTCB->stackSize = stackSize;
     pTCB->flags = flags;
@@ -137,7 +139,7 @@ TCB *kGetNextTaskToRun(void) {
 
 // Add Task to Tail of Task List
 void kAddTaskToReadyList(TCB *pTask) {
-    kAddListToTail(&gScheduler.readyList, pTask);
+    kAddListToTail(&(gScheduler.readyList), pTask);
 }
 
 // Context Switching - Don't call this function at interrupt/exception handler
@@ -146,7 +148,7 @@ void kSchedule(void) {
     BOOL bPrevFlag;
 
     // Check is there any task to run
-    if(kGetListCount(&gScheduler.readyList) == 0)
+    if(kGetListCount(&(gScheduler.readyList)) == 0)
         return;
     
     // Deactivate Interrupt to block context switching by interrupts
@@ -158,12 +160,12 @@ void kSchedule(void) {
         pRunningTask = gScheduler.pRunningTask;
         kAddTaskToReadyList(pRunningTask);
 
-        // Update Available Processor time
-        gScheduler.processorTime = TASK_PROCESSOR_TIME; // 5 tick(ms)
-
         // Set "next task" as the Currently Running Task & Context Switching
         gScheduler.pRunningTask = pNextTask;
-        kSwitchContext(&pRunningTask->context, &pNextTask->context);   
+        kSwitchContext(&(pRunningTask->context), &(pNextTask->context));   
+
+        // Update Available Processor time
+        gScheduler.processorTime = TASK_PROCESSOR_TIME; // 5 tick(ms)
     }
 
     kSetInterruptFlag(bPrevFlag);
@@ -183,12 +185,12 @@ BOOL kScheduleInInterrupt(void) {
     pContextAddress = (char *)IST_BASE_ADDR + IST_SIZE - sizeof(CONTEXT);
 
     pRunningTask = gScheduler.pRunningTask;
-    kMemCpy(&pRunningTask->context, pContextAddress, sizeof(CONTEXT));
+    kMemCpy(&(pRunningTask->context), pContextAddress, sizeof(CONTEXT));
     kAddTaskToReadyList(pRunningTask);
 
     // Set "next task" as the Currently Running Task & Context Switching
     gScheduler.pRunningTask = pNextTask;
-    kMemCpy(pContextAddress, &pNextTask->context, sizeof(CONTEXT));
+    kMemCpy(pContextAddress, &(pNextTask->context), sizeof(CONTEXT));
 
     // Update Available Processor time
     gScheduler.processorTime = TASK_PROCESSOR_TIME; // 5 tick(ms)
