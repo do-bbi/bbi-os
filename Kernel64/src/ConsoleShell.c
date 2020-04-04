@@ -8,17 +8,17 @@
 #include "AssemblyUtil.h"
 
 SHELLCOMMANDENTRY gCommandTable[] = {
-    {"help",        "Show Help",                kHelp},
-    {"clear",       "Clear Screen",             kClear},
-    {"totalram",    "Show Total sizeof RAM",    kShowTotalSizeofRAM},
-    {"strtonum",    "Convert Str To Dec/Hex",   kStrToNumTest},
-    {"shutdown",    "Shutdown & Reboot OS",     kShutdown},
-    {"settimer",    "Set PIT Controller",       kSetTimer},
-    {"wait",        "Wait #t ms Using PIT",     kWaitUsingPIT},
-    {"rdtsc",       "Read Time Stamp Counter",  kReadTimeStampCounter},
-    {"cpuspeed",    "Measyre Processor Speed",  kMeasureProcessorSpeed},
-    {"date",        "Show Date & Time",         kShowDateAndTime},
-    {"createtask",  "Create Test Task",         kCreateTestTask},
+    {"help",        "Show Help",                    kHelp},
+    {"clear",       "Clear Screen",                 kClear},
+    {"totalram",    "Show Total sizeof RAM",        kShowTotalSizeofRAM},
+    {"strtonum",    "Convert Str To Dec/Hex",       kStrToNumTest},
+    {"shutdown",    "Shutdown & Reboot OS",         kShutdown},
+    {"settimer",    "Set PIT Controller(< 56ms)",   kSetTimer},
+    {"wait",        "Wait #t ms Using PIT",         kWaitUsingPIT},
+    {"rdtsc",       "Read Time Stamp Counter",      kReadTimeStampCounter},
+    {"cpuspeed",    "Measyre Processor Speed",      kMeasureProcessorSpeed},
+    {"date",        "Show Date & Time",             kShowDateAndTime},
+    {"createtask",  "Create Test Task",             kCreateTestTask},
 };
 
 void kStartConsoleShell(void) {
@@ -240,7 +240,7 @@ void kSetTimer(const char *pParamBuf) {
     }
     periodic = kAtoI(params, 10);
 
-    kInitializePIT(value, periodic);
+    kInitializePIT(MSTOCOUNT(value), periodic);
     kPrintf("Time = %d ms, Periodic = %s Change Complete\n", value, periodic ? "TRUE" : "FALSE");
 }
 

@@ -5,7 +5,7 @@
 void kInitializePIT(WORD count, BOOL isPeriodic) {
     // PIT 컨트롤 레지스터(Port 0x43)에 값을 초기화하여 카운트를 멈춘 뒤
     // Mode 0 Binary Counter로 설정
-    kOutPortByte(PIT_PORT_COUNTER0, PIT_COUNTER0_ONCE);
+    kOutPortByte(PIT_PORT_CONTROL, PIT_COUNTER0_ONCE);
 
     // 일정 주기로 반복하는 타이머 -> Mode 2
     if(isPeriodic) {
@@ -32,6 +32,8 @@ WORD kReadCounter0(void) {
     // Convert to 16bit value
     tmp = msb;
     tmp = (tmp << 8) | lsb;
+
+    return tmp;
 }
 
 /* 
