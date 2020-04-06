@@ -6,6 +6,9 @@ https://github.com/do-bbi/bbi-os/wiki
 ## bbi-os Memory Map
 ![BBI_OS_MMAP](imgs/BBI_OS_MMAP.png)
 
+## bbi-os Running Tasks with Time-Sharing 
+![BBI_OS_MMAP](imgs/bbi-os.gif)
+
 ## Welcome to bbi-os
 bbi-os is derived OS from [MINT64 OS](http://www.mint64os.pe.kr/) and written by C & x86_64 assembly languages 
 
