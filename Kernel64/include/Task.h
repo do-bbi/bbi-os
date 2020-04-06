@@ -50,6 +50,21 @@
 // Processor Time that Task Can Use Maximum
 #define TASK_PROCESSOR_TIME     (5) // ms
 
+// Max Count of Ready List
+#define TASK_MAX_READY_LIST_COUNT
+
+// Priroty List of Tasks
+#define TASK_PRIORITY_HIGHEST   (0)
+#define TASK_PRIORITY_HIGH      (1)
+#define TASK_PRIORITY_MEDIUM    (2)
+#define TASK_PRIORITY_LOW       (3)
+#define TASK_PRIORITY_LOWEST    (4)
+#define TASK_PRIORITY_WAIT      (0xFF)
+
+// Flags of Tasks
+#define TASK_FLAGS_ENDTASK      (0x8000000000000000)
+#define TASK_FLAGS_IDLE         (0x0800000000000000)
+
 // Struct
 #pragma pack(push, 1)
 
