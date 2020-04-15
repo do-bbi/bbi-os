@@ -312,3 +312,7 @@ int kVSPrintf(char *pBuf, const char *pFormatStr, va_list ap) {
     
     return bufIdx;
 }
+
+QWORD kGetTickCount(void) {
+    return gTickCount;
+}

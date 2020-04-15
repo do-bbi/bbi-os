@@ -14,5 +14,6 @@ void kDisableInterrupt(void);
 QWORD kReadRFLAGS(void);
 QWORD kReadTSC(void);
 void kSwitchContext(CONTEXT *pCurrentContext, CONTEXT *pNextContext);
+void kHlt(void);
 
 #endif  // __ASSEMBLYUTIL_H__

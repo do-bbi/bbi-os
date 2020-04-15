@@ -96,6 +96,7 @@ void Main(void) {
     kSetCursor(PRINT_BLANK_POS, posY);
     kPrintf("PASS\n"), posY++;
 
+    kCreateTask(TASK_PRIORITY_LOWEST | TASK_FLAGS_IDLE, (QWORD)kIdleTask);
     kStartConsoleShell();
 
     // while(TRUE) {

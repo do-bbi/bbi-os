@@ -37,33 +37,38 @@
 #define TASK_SS_OFFSET      (23)
 
 // Address For Task Pool
-#define TASK_TCB_POOL_ADDR      (0x800000)
-#define TASK_MAX_COUNT          (1024)
+#define TASK_TCB_POOL_ADDR          (0x800000)
+#define TASK_MAX_COUNT              (1024)
 
 // Address & Size For Stack Pool
-#define TASK_STACK_POOL_ADDR    (TASK_TCB_POOL_ADDR + sizeof(TCB) * TASK_MAX_COUNT)
-#define TASK_STACK_SIZE         (8192)
+#define TASK_STACK_POOL_ADDR        (TASK_TCB_POOL_ADDR + sizeof(TCB) * TASK_MAX_COUNT)
+#define TASK_STACK_SIZE             (8192)
 
 // Invalid Task ID
-#define TASK_INVALID_ID         (0xFFFFFFFFFFFFFFFF)
+#define TASK_INVALID_ID             (0xFFFFFFFFFFFFFFFF)
 
 // Processor Time that Task Can Use Maximum
-#define TASK_PROCESSOR_TIME     (5) // ms
+#define TASK_PROCESSOR_TIME         (5) // ms
 
 // Max Count of Ready List
-#define TASK_MAX_READY_LIST_COUNT
+#define TASK_MAX_READY_LIST_COUNT   (5)
 
 // Priroty List of Tasks
-#define TASK_PRIORITY_HIGHEST   (0)
-#define TASK_PRIORITY_HIGH      (1)
-#define TASK_PRIORITY_MEDIUM    (2)
-#define TASK_PRIORITY_LOW       (3)
-#define TASK_PRIORITY_LOWEST    (4)
-#define TASK_PRIORITY_WAIT      (0xFF)
+#define TASK_PRIORITY_HIGHEST       (0)
+#define TASK_PRIORITY_HIGH          (1)
+#define TASK_PRIORITY_MEDIUM        (2)
+#define TASK_PRIORITY_LOW           (3)
+#define TASK_PRIORITY_LOWEST        (4)
+#define TASK_PRIORITY_WAIT          (0xFF)
 
 // Flags of Tasks
-#define TASK_FLAGS_ENDTASK      (0x8000000000000000)
-#define TASK_FLAGS_IDLE         (0x0800000000000000)
+#define TASK_FLAGS_ENDTASK          (0x8000000000000000)
+#define TASK_FLAGS_IDLE             (0x0800000000000000)
+
+// Macro for Priority
+#define GETPRIORITY(x)              ((x) & 0xFF)
+#define SETPRIORITY(x, pr)          ((x) = ((x) & 0xFFFFFFFFFFFFFF00) | pr)
+#define GETTCBOFFSET(x)             ((x) & 0xFFFFFFFF)
 
 // Struct
 #pragma pack(push, 1)
@@ -102,7 +107,19 @@ typedef struct kSchedulerStruct {
     int processorTime;
 
     // Tasks ready to run
-    LIST readyList;
+    LIST readyList[TASK_MAX_READY_LIST_COUNT];
+
+    // List waiting to be ended
+    LIST waitList;
+
+    // Task execution frequency by priority
+    int execFrequency[TASK_MAX_READY_LIST_COUNT];
+    
+    // Load of Processor
+    QWORD processorLoad;
+
+    // Processor time used for idle tasks 
+    QWORD idleTime;
 } SCHEDULER;
 
 #pragma pack(pop)
@@ -124,5 +141,17 @@ void kSchedule(void);
 BOOL kScheduleInInterrupt(void);
 void kDecreaseProcessorTime(void);
 BOOL kIsProcessorTimeExpired(void);
+TCB *kRemoveTaskFromReadyList(QWORD id);
+BOOL kChangePriority(QWORD id, BYTE priority);
+BOOL kEndTask(QWORD id);
+void kExitTask(void);
+int kGetReadyTaskCount(void);
+int kGetTaskCount(void);
+TCB *kGetTCBInTCBPool(int offset);
+BOOL kIsTaskExist(QWORD id);
+QWORD kGetProcessorLoad(void);
+
+void kIdleTask(void);
+void kHaltProcessorByLoad(void);
 
 #endif  // __TASK_H__

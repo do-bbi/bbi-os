@@ -7,7 +7,7 @@ global kInPortByte, kOutPortByte
 global kLoadGDTR, kLoadTR, kLoadIDTR
 global kEnableInterrupt, kDisableInterrupt
 global kReadRFLAGS, kReadTSC
-global kSwitchContext
+global kSwitchContext, kHlt
 
 SECTION .text
 
@@ -201,3 +201,10 @@ kSwitchContext:
     ; Context 자료구조에서 레지스터를 복원
     KLOADCONTEXT
     iretq
+
+; Halt Processor
+;   PARAM: None
+kHlt:
+    hlt     ; Put the processor into standby
+    hlt
+    ret
