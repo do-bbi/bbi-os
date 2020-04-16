@@ -32,16 +32,20 @@ void kInitializeParam(PARAMLIST *pList, const char *pParam);
 int kGetNextParameter(PARAMLIST *pList, char *pParam);
 
 // Functions for COMMAND
-void kHelp(const char *pParamBuf);
-void kClear(const char *pParamBuf);
-void kShutdown(const char *pParamBuf);
-void kStrToNumTest(const char *pParamBuf);
-void kShowTotalSizeofRAM(const char *pParamBuf);
-void kSetTimer(const char *pParamBuf);
-void kWaitUsingPIT(const char *pParamBuf);
-void kReadTimeStampCounter(const char *pParamBuf);
-void kMeasureProcessorSpeed(const char *pParamBuf);
-void kShowDateAndTime(const char *pParamBuf);
-void kCreateTestTask(const char *pParamBuf);
+static void kHelp(const char *pParamBuf);
+static void kClear(const char *pParamBuf);
+static void kShutdown(const char *pParamBuf);
+static void kStrToNumTest(const char *pParamBuf);
+static void kShowTotalSizeofRAM(const char *pParamBuf);
+static void kSetTimer(const char *pParamBuf);
+static void kWaitUsingPIT(const char *pParamBuf);
+static void kReadTimeStampCounter(const char *pParamBuf);
+static void kMeasureProcessorSpeed(const char *pParamBuf);
+static void kShowDateAndTime(const char *pParamBuf);
+static void kCreateTestTask(const char *pParamBuf);
+static void kChangeTaskPriority(const char *pParamBuf);
+static void kShowTaskList(const char *pParamBuf);
+static void kKillTask(const char *pParamBuf);
+static void kCPULoad(const char *pParamBuf);
 
 #endif  // __CONSOLESHELL_H__

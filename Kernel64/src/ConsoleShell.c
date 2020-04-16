@@ -6,19 +6,24 @@
 #include "RTC.h"
 #include "Task.h"
 #include "AssemblyUtil.h"
+#include "Task.h"
 
 SHELLCOMMANDENTRY gCommandTable[] = {
-    {"help",        "Show Help",                    kHelp},
-    {"clear",       "Clear Screen",                 kClear},
-    {"totalram",    "Show Total sizeof RAM",        kShowTotalSizeofRAM},
-    {"strtonum",    "Convert Str To Dec/Hex",       kStrToNumTest},
-    {"shutdown",    "Shutdown & Reboot OS",         kShutdown},
-    {"settimer",    "Set PIT Controller(< 56ms)",   kSetTimer},
-    {"wait",        "Wait #t ms Using PIT",         kWaitUsingPIT},
-    {"rdtsc",       "Read Time Stamp Counter",      kReadTimeStampCounter},
-    {"cpuspeed",    "Measyre Processor Speed",      kMeasureProcessorSpeed},
-    {"date",        "Show Date & Time",             kShowDateAndTime},
-    {"createtask",  "Create Test Task",             kCreateTestTask},
+    {"help",            "Show Help",                    kHelp},
+    {"clear",           "Clear Screen",                 kClear},
+    {"totalram",        "Show Total sizeof RAM",        kShowTotalSizeofRAM},
+    {"strtonum",        "Convert Str To Dec/Hex",       kStrToNumTest},
+    {"shutdown",        "Shutdown & Reboot OS",         kShutdown},
+    {"settimer",        "Set PIT Controller(< 56ms)",   kSetTimer},
+    {"wait",            "Wait #t ms Using PIT",         kWaitUsingPIT},
+    {"rdtsc",           "Read Time Stamp Counter",      kReadTimeStampCounter},
+    {"cpuspeed",        "Measyre Processor Speed",      kMeasureProcessorSpeed},
+    {"date",            "Show Date & Time",             kShowDateAndTime},
+    {"createtask",      "Create Test Task",             kCreateTestTask},
+    {"changepriority",  "Create Test Task",             kChangePriority},
+    {"tasklist",        "Show Task List",               kShowTaskList},
+    {"killtask",        "Kill Task",                    kKillTask},
+    {"cpuload",         "Show Processor Load",          kCPULoad},
 };
 
 void kStartConsoleShell(void) {
@@ -143,7 +148,7 @@ int kGetNextParameter(PARAMLIST *pList, char *pParam) {
 }
 
 // Functions for COMMAND
-void kHelp(const char *pParamBuf) {
+static void kHelp(const char *pParamBuf) {
     int i, x, y, cnt;
     int cmdLen, maxLen = 0;
 
@@ -169,17 +174,17 @@ void kHelp(const char *pParamBuf) {
     }
 }
 
-void kClear(const char *pParamBuf) {
+static void kClear(const char *pParamBuf) {
     // Use 1st line for debugging
     kClearScreen();
     kSetCursor(0, 1);
 }
 
-void kShowTotalSizeofRAM(const char *pParamBuf) {
+static void kShowTotalSizeofRAM(const char *pParamBuf) {
     kPrintf("Total sizeof RAM = %d MB\n", kGetTotalRAMSize());
 }
 
-void kStrToNumTest(const char *pParamBuf) {
+static void kStrToNumTest(const char *pParamBuf) {
     char param[100];
     int len, cnt = 0;;
 
@@ -208,7 +213,7 @@ void kStrToNumTest(const char *pParamBuf) {
     }
 }
 
-void kShutdown(const char *pParamBuf) {
+static void kShutdown(const char *pParamBuf) {
     kPrintf("System Shutdown Start...\n");
 
     kPrintf("Press any key to reboot");
@@ -217,7 +222,7 @@ void kShutdown(const char *pParamBuf) {
 }
 
 // PIT 컨트롤러의 카운터를 0으로 설정
-void kSetTimer(const char *pParamBuf) {
+static void kSetTimer(const char *pParamBuf) {
     char params[100];
     PARAMLIST list;
     long value;
@@ -245,7 +250,7 @@ void kSetTimer(const char *pParamBuf) {
 }
 
 // PIT 컨트롤러를 직접 사용하여 #t ms 동안 대기
-void kWaitUsingPIT(const char *pParamBuf) {
+static void kWaitUsingPIT(const char *pParamBuf) {
     char params[100];
     PARAMLIST list;
     long ms;
@@ -278,7 +283,7 @@ void kWaitUsingPIT(const char *pParamBuf) {
 }
 
 // Read Time Stamp Counter
-void kReadTimeStampCounter(const char *pParamBuf) {
+static void kReadTimeStampCounter(const char *pParamBuf) {
     QWORD tsc;
 
     tsc = kReadTSC();
@@ -287,7 +292,7 @@ void kReadTimeStampCounter(const char *pParamBuf) {
 }
 
 // Measure Speed of Processor
-void kMeasureProcessorSpeed(const char *pParamBuf) {
+static void kMeasureProcessorSpeed(const char *pParamBuf) {
     int i;
     QWORD lastTSC, totalTSC = 0;
 
@@ -311,7 +316,7 @@ void kMeasureProcessorSpeed(const char *pParamBuf) {
     kPrintf("\nCPU Speed = %d MHz\n", totalTSC / 10 / 1000 / 1000);
 }
 
-void kShowDateAndTime(const char *pParamBuf) {
+static void kShowDateAndTime(const char *pParamBuf) {
     BYTE ss, mm, hh;
     BYTE dayOfWeek, dayOfMonth, month;
     WORD year;
@@ -327,7 +332,7 @@ static TCB      gTasks[2] = {0, };
 static QWORD    gStacks[1024] = {0, };
 
 // Task switching Task
-void kTestTask(void) {
+static void kTestTask(void) {
     int i = 0;
 
     while(TRUE) {
@@ -342,9 +347,9 @@ void kTestTask(void) {
 }
 
 // Task 1 - Print Texts while Rotating the Screen Border
-void kTestTask1(void) {
+static void kTestTask1(void) {
     BYTE data;
-    int i = 0, cursorX = 0, cursorY = 0, margin;
+    int i = 0, j, cursorX = 0, cursorY = 0, margin;
     VGATEXT *pScreen = (VGATEXT *)CONSOLE_VIDEO_MEM_ADDR;
 
     TCB *pRunningTask;
@@ -354,7 +359,7 @@ void kTestTask1(void) {
     margin = (pRunningTask->link.id & 0xFFFFFFFF) % 10;
 
     // Print Texts while Rotating the Screen Border
-    while(TRUE) {
+    for(j = 0; j < 20000; ++j) {
         switch (i)
         {
         case 0:
@@ -388,12 +393,14 @@ void kTestTask1(void) {
         data++;
 
         // Context Switching
-        kSchedule();
+        // kSchedule();
     }
+
+    kExitTask();
 }
 
 // Task 2 - Print a Rotating Pinwheel at a Specific Location with referring to Task ID
-void kTestTask2(void) {
+static void kTestTask2(void) {
     int i = 0, offset;
     VGATEXT *pScreen = (VGATEXT *)CONSOLE_VIDEO_MEM_ADDR;
 
@@ -412,11 +419,11 @@ void kTestTask2(void) {
         pScreen[offset].attr = (offset % 15) + 1;
         i++;
 
-        kSchedule();
+        // kSchedule();
     }
 }
 
-void kCreateTestTask(const char *pParamBuf) {
+static void kCreateTestTask(const char *pParamBuf) {
     PARAMLIST params;
     char types[30];
     char counts[30];
@@ -432,7 +439,7 @@ void kCreateTestTask(const char *pParamBuf) {
     // Create Task 1
     case 1:
         for(i = 0; i < kAtoI(counts, 10); ++i) {
-            if(kCreateTask(0, (QWORD)kTestTask1) == NULL)
+            if(kCreateTask(TASK_PRIORITY_LOW, (QWORD)kTestTask1) == NULL)
                 break;
         }
 
@@ -443,13 +450,53 @@ void kCreateTestTask(const char *pParamBuf) {
     case 2:
     default:
         for(i = 0; i < kAtoI(counts, 10); ++i) {
-            if(kCreateTask(0, (QWORD)kTestTask2) == NULL)
+            if(kCreateTask(TASK_PRIORITY_LOW, (QWORD)kTestTask2) == NULL)
                 break;
         }
         
         kPrintf("Task2 %d Created\n", i);
         break;
     }
+}
+
+// Change Task Priority
+static void kChangeTaskPriority(const char *pParamBuf) {
+    PARAMLIST list;
+    char ids[30];
+    char priorities[3];
+    
+    QWORD id;
+    BYTE priority;
+    BOOL result;
+
+    kInitializeList(&list, pParamBuf);
+    kGetNextParameter(&list, ids);
+    kGetNextParameter(&list, priorities);
+
+    if(kMemCmp(ids, "0x", 2) == 0) 
+        id = kAtoI(ids + 2, 16);
+    else
+        id = kAtoI(ids, 10);
+
+    priority = kAtoI(priorities, 10);
+
+    result = kChangePriority(id, priority);
+    kPrintf("Change Task Priority ID [0x%q] Priority[%d] %s\n", id, priority, result ? "Success" : "Failed");
+}
+
+// Show Task List
+static void kShowTaskList(const char *pParamBuf) {
+    
+}
+
+// Kill Task
+static void kKillTask(const char *pParamBuf) {
+    
+}
+
+// Show CPU Usage Rate
+static void kCPULoad(const char *pParamBuf) {
+    kPrintf("Current Processor Load = %d%%\n", kGetProcessorLoad());
 }
 
 // void kCreateTestTask(const char *pParamBuf) {
