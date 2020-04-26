@@ -2,6 +2,7 @@
 #include "Utility.h"
 #include "Console.h"
 #include "Keyboard.h"
+#include "Task.h"
 
 #define MAX_BUF_SIZE    (1024)
 
@@ -122,7 +123,9 @@ BYTE kGetCh(void) {
     // Wait until key pressed
     while(TRUE) {
         // Wait until key pushed into queue
-        while(kGetKeyFromKeyQueue(&keyData) == FALSE);
+        while(kGetKeyFromKeyQueue(&keyData) == FALSE) {
+            kSchedule();
+        }
 
         // 키가 눌렸다는 데이터가 수신되면 ASCII 코드 반환
         if(keyData.flags & KEY_FLAGS_DOWN)
