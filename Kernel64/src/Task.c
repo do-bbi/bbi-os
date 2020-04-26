@@ -120,7 +120,7 @@ void kInitializeScheduler(void) {
         kInitializeList(&(gScheduler.readyList[i]));
         gScheduler.execFrequency[i] = 0;
     }
-    kInitializeList(&(gScheduler.readyList));
+    kInitializeList(&(gScheduler.waitList));
 
     // Allocate Task & Set Priority to HIGHEST
     gScheduler.pRunningTask = kAllocateTCB();
@@ -161,9 +161,8 @@ TCB *kGetNextTaskToRun(void) {
                 gScheduler.execFrequency[i]++;
                 break;
             }
-            else {
+            else
                 gScheduler.execFrequency[i] = 0;
-            }
         }
 
         if(pTarget != NULL)
@@ -201,13 +200,12 @@ void kSchedule(void) {
     pNextTask = kGetNextTaskToRun();
     if(pNextTask != NULL) {
         pRunningTask = gScheduler.pRunningTask;
-        gScheduler.pRunningTask = pRunningTask;
+        gScheduler.pRunningTask = pNextTask;
 
-        if((pRunningTask->flags & TASK_FLAGS_IDLE) == TASK_FLAGS_IDLE) {
+        if((pRunningTask->flags & TASK_FLAGS_IDLE) == TASK_FLAGS_IDLE)
             gScheduler.idleTime += TASK_PROCESSOR_TIME - gScheduler.processorTime;
-        }
 
-        gScheduler.processorTime = TASK_PROCESSOR_TIME;
+        gScheduler.processorTime = TASK_PROCESSOR_TIME;  // 5 tick(ms)
 
         if(pRunningTask->flags & TASK_FLAGS_ENDTASK) {
             kAddListToTail(&(gScheduler.waitList), pRunningTask);
@@ -217,13 +215,6 @@ void kSchedule(void) {
             kAddTaskToReadyList(pRunningTask);
             kSwitchContext(&(pRunningTask->context), &(pNextTask->context));
         }
-
-        // Set "next task" as the Currently Running Task & Context Switching
-        gScheduler.pRunningTask = pNextTask;
-        kSwitchContext(&(pRunningTask->context), &(pNextTask->context));   
-
-        // Update Available Processor time
-        gScheduler.processorTime = TASK_PROCESSOR_TIME; // 5 tick(ms)
     }
 
     kSetInterruptFlag(bPrevFlag);
@@ -255,12 +246,8 @@ BOOL kScheduleInInterrupt(void) {
         kAddTaskToReadyList(pRunningTask);
     }
 
-    pRunningTask = gScheduler.pRunningTask;
-    kMemCpy(&(pRunningTask->context), pContextAddress, sizeof(CONTEXT));
-    kAddTaskToReadyList(pRunningTask);
-
-    // Set "next task" as the Currently Running Task & Context Switching
-    gScheduler.pRunningTask = pNextTask;
+    // Set "Running Task" to NextTask(already got)
+    // And Memory Copy it to IST for context swtiching automatically
     kMemCpy(pContextAddress, &(pNextTask->context), sizeof(CONTEXT));
 
     // Update Available Processor time
@@ -342,7 +329,7 @@ BOOL kEndTask(QWORD id) {
         pTarget = kRemoveTaskFromReadyList(id);
         if(pTarget == NULL) {
             pTarget = kGetTCBInTCBPool(GETTCBOFFSET(id));
-            if(pTarget != NULL) {
+            if(pTarget) {
                 pTarget->flags |= TASK_FLAGS_ENDTASK;
                 SETPRIORITY(pTarget->flags, TASK_FLAGS_IDLE);
             }
@@ -396,8 +383,9 @@ BOOL kIsTaskExist(QWORD id) {
 
     pTCB = kGetTCBInTCBPool(GETTCBOFFSET(id));
 
-    return ((pTCB == NULL) || (pTCB->link.id != id)) ? FALSE : TRUE;
+    return (pTCB != NULL) && (pTCB->link.id == id);
 }
+
 QWORD kGetProcessorLoad(void) {
     return gScheduler.processorLoad;
 }

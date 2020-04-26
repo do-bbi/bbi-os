@@ -6,7 +6,6 @@
 #include "RTC.h"
 #include "Task.h"
 #include "AssemblyUtil.h"
-#include "Task.h"
 
 SHELLCOMMANDENTRY gCommandTable[] = {
     {"help",            "Show Help",                    kHelp},
@@ -20,9 +19,10 @@ SHELLCOMMANDENTRY gCommandTable[] = {
     {"cpuspeed",        "Measyre Processor Speed",      kMeasureProcessorSpeed},
     {"date",            "Show Date & Time",             kShowDateAndTime},
     {"createtask",      "Create Test Task",             kCreateTestTask},
-    {"changepriority",  "Create Test Task",             kChangePriority},
+    {"changepriority",  "Change Task Priority, ex) "
+                        "changepriority $ID $PR(0~4)",  kChangeTaskPriority},
     {"tasklist",        "Show Task List",               kShowTaskList},
-    {"killtask",        "Kill Task",                    kKillTask},
+    {"killtask",        "Kill Task, ex) killtask $ID",  kKillTask},
     {"cpuload",         "Show Processor Load",          kCPULoad},
 };
 
@@ -349,7 +349,7 @@ static void kTestTask(void) {
 // Task 1 - Print Texts while Rotating the Screen Border
 static void kTestTask1(void) {
     BYTE data;
-    int i = 0, j, cursorX = 0, cursorY = 0, margin;
+    int i = 0, count, cursorX = 0, cursorY = 0, margin;
     VGATEXT *pScreen = (VGATEXT *)CONSOLE_VIDEO_MEM_ADDR;
 
     TCB *pRunningTask;
@@ -359,7 +359,8 @@ static void kTestTask1(void) {
     margin = (pRunningTask->link.id & 0xFFFFFFFF) % 10;
 
     // Print Texts while Rotating the Screen Border
-    for(j = 0; j < 20000; ++j) {
+    count = 20000;
+    while(count--) {
         switch (i)
         {
         case 0:
@@ -401,7 +402,7 @@ static void kTestTask1(void) {
 
 // Task 2 - Print a Rotating Pinwheel at a Specific Location with referring to Task ID
 static void kTestTask2(void) {
-    int i = 0, offset;
+    int i = 0, count, offset;
     VGATEXT *pScreen = (VGATEXT *)CONSOLE_VIDEO_MEM_ADDR;
 
     TCB *pRunningTask;
@@ -414,6 +415,8 @@ static void kTestTask2(void) {
     // offset = 1 + (offset % (CONSOLE_WIDTH * CONSOLE_HEIGHT));
 
     // Print Texts while Rotating the Screen Border
+    // count = 20000;
+    // while(count--) {
     while(TRUE) {
         pScreen[offset].ch = pinwheel[i % 4];
         pScreen[offset].attr = (offset % 15) + 1;
@@ -421,6 +424,8 @@ static void kTestTask2(void) {
 
         // kSchedule();
     }
+
+    kExitTask();
 }
 
 static void kCreateTestTask(const char *pParamBuf) {
@@ -469,7 +474,7 @@ static void kChangeTaskPriority(const char *pParamBuf) {
     BYTE priority;
     BOOL result;
 
-    kInitializeList(&list, pParamBuf);
+    kInitializeParam(&list, pParamBuf);
     kGetNextParameter(&list, ids);
     kGetNextParameter(&list, priorities);
 
@@ -486,12 +491,46 @@ static void kChangeTaskPriority(const char *pParamBuf) {
 
 // Show Task List
 static void kShowTaskList(const char *pParamBuf) {
-    
+    int i;
+    TCB *pTCB;
+    int count = 0;
+
+    kPrintf("=========== Task Total Count [%03d] ===========\n", kGetTaskCount());
+    for(i = 0; i < TASK_MAX_COUNT; ++i) {
+        pTCB = kGetTCBInTCBPool(i);
+        if((pTCB->link.id >> 32)) {
+            if(count && (count % 10) == 0) {
+                kPrintf("Press any key to continue... ('q' is exit) : ");
+                if(kGetCh() == 'q') {
+                    kPrintf("\n");
+                    break;
+                }
+                kPrintf("\n");
+            }
+
+            kPrintf("[%d] Task #0x%Q - Priority=%d, Flags=0x%Q\n", ++count, 
+                    pTCB->link.id, GETPRIORITY(pTCB->flags), pTCB->flags);
+        }
+    }
 }
 
 // Kill Task
 static void kKillTask(const char *pParamBuf) {
+    PARAMLIST list;
+    char ids[30];
+    QWORD id;
+    BOOL result;
+
+    kInitializeParam(&list, pParamBuf);
+    kGetNextParameter(&list, ids);
+
+    if(kMemCmp(ids, "0x", 2) == 0)
+        id = kAtoI(ids + 2, 16);
+    else
+        id = kAtoI(ids, 10);
     
+    result = kEndTask(id);
+    kPrintf("Kill Task #0x%q %s\n", id, result ? "Success" : "Failed");
 }
 
 // Show CPU Usage Rate
