@@ -17,6 +17,7 @@
         "stdarg.h": "c",
         "rtc.h": "c",
         "pit.h": "c",
-        "task.h": "c"
+        "task.h": "c",
+        "sync.h": "c"
     }
 }

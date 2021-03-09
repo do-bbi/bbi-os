@@ -1,17 +1,20 @@
 Task.o: ../src/Task.c ../include/Task.h ../../Kernel32/include/Types.h \
- ../include/List.h ../include/Descriptor.h ../include/Utility.h
+ ../include/List.h ../include/Descriptor.h ../include/Utility.h \
+ ../include/Sync.h
 RTC.o: ../src/RTC.c ../include/RTC.h ../../Kernel32/include/Types.h \
  ../include/AssemblyUtil.h ../include/Task.h ../include/List.h
 Keyboard.o: ../src/Keyboard.c ../../Kernel32/include/Types.h \
  ../include/AssemblyUtil.h ../include/Task.h ../include/List.h \
- ../include/Keyboard.h ../include/Queue.h
+ ../include/Keyboard.h ../include/Queue.h ../include/Sync.h
 PIC.o: ../src/PIC.c ../include/PIC.h ../../Kernel32/include/Types.h
+Sync.o: ../src/Sync.c ../include/Sync.h ../../Kernel32/include/Types.h \
+ ../include/Utility.h ../include/Task.h ../include/List.h
 Utility.o: ../src/Utility.c ../include/Utility.h \
  ../../Kernel32/include/Types.h ../include/AssemblyUtil.h \
  ../include/Task.h ../include/List.h
 Console.o: ../src/Console.c ../include/Utility.h \
  ../../Kernel32/include/Types.h ../include/Console.h \
- ../include/Keyboard.h
+ ../include/Keyboard.h ../include/Task.h ../include/List.h
 Descriptor.o: ../src/Descriptor.c ../include/Descriptor.h \
  ../../Kernel32/include/Types.h ../include/Utility.h ../include/ISR.h
 InterruptHandler.o: ../src/InterruptHandler.c \
@@ -28,7 +31,7 @@ ConsoleShell.o: ../src/ConsoleShell.c ../include/ConsoleShell.h \
  ../../Kernel32/include/Types.h ../include/Console.h \
  ../include/Keyboard.h ../include/Utility.h ../include/PIT.h \
  ../include/RTC.h ../include/Task.h ../include/List.h \
- ../include/AssemblyUtil.h ../include/Task.h
+ ../include/AssemblyUtil.h ../include/Task.h ../include/Sync.h
 Main.o: ../src/Main.c ../../Kernel32/include/Types.h \
  ../include/Keyboard.h ../include/Descriptor.h ../include/PIC.h \
  ../include/Console.h ../include/ConsoleShell.h ../include/Task.h \

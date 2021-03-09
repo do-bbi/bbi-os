@@ -15,5 +15,6 @@ QWORD kReadRFLAGS(void);
 QWORD kReadTSC(void);
 void kSwitchContext(CONTEXT *pCurrentContext, CONTEXT *pNextContext);
 void kHlt(void);
+BOOL kTestAndSet(volatile BYTE *pDst, BYTE compValue, BYTE src);
 
 #endif  // __ASSEMBLYUTIL_H__

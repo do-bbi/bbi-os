@@ -3,14 +3,15 @@
       {
         "name": "bbi-os",
         "includePath": [
-          "${workspaceFolder}/**"
+          "${workspaceFolder}/**",
+          "${env:MSYS2_DIR}/usr/cross/lib/gcc/x86_64-pc-linux/**"
         ],
         "defines": [
         ],
-        "compilerPath": "/usr/cross/bin/x86_64-pc-linux-gcc",
         "cStandard": "c99",
         "cppStandard": "c++11",
-        "intelliSenseMode": "gcc-x64"
+        "intelliSenseMode": "gcc-x64",
+        "compilerPath": "${env:MSYS2_DIR}/usr/cross/bin/x86_64-pc-linux-gcc"
       }
     ],
     "version": 4

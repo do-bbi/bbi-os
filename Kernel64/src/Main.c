@@ -13,7 +13,7 @@
 
 #define PRINT_BLANK_POS  (45)
 
-void kPrintString(int iX, int iY, const char* pcString);
+void kPrintString(int x, int y, const char* pStr);
 
 // C 언어 커널
 void Main(void) {
@@ -70,8 +70,8 @@ void Main(void) {
     kSetCursor(PRINT_BLANK_POS, posY);
     kPrintf("PASS\n"), posY++;
 
-    // Set Interrupt to Occur Once per 1ms
-    kInitializePIT(MSTOCOUNT(1), 1);
+    // Set Interrupt to Occur Once per 0.1ms
+    kInitializePIT(MSTOCOUNT(0.05), 1);
     
     /**************************************************************************/
     kPrintf("Keyboard Activate And Queue Initialize......[    ]");
@@ -117,11 +117,11 @@ void Main(void) {
     // }
 }
 
-void kPrintString(int iX, int iY, const char *pcString) {
+void kPrintString(int x, int y, const char *pStr) {
     VGATEXT *pstScreen = (VGATEXT *)VIDEO_MEM_ADDR;    // Video Memory Addr
     int i;
 
-    pstScreen += (iY * 80) + iX;
-    for(i = 0; pcString[i]; ++i)
-        pstScreen[i].ch = pcString[i];
+    pstScreen += (y * 80) + x;
+    for(i = 0; pStr[i]; ++i)
+        pstScreen[i].ch = pStr[i];
 }

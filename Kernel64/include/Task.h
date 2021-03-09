@@ -125,23 +125,23 @@ typedef struct kSchedulerStruct {
 #pragma pack(pop)
 
 // Function For Task & Task Pool
-void kInitializeTCBPool(void);
-TCB *kAllocateTCB(void);
-void kFreeTCB(QWORD id);
+static void kInitializeTCBPool(void);
+static TCB *kAllocateTCB(void);
+static void kFreeTCB(QWORD id);
 TCB *kCreateTask(QWORD flags, QWORD entryPointAddr);
-void kSetUpTask(TCB *pTCB, QWORD flags, QWORD entryPointerAddr, void *pStackAddr, QWORD stackSize);
+static void kSetUpTask(TCB *pTCB, QWORD flags, QWORD entryPointerAddr, void *pStackAddr, QWORD stackSize);
 
 // Function For Scheduler
 void kInitializeScheduler(void);
 void kSetRunningTask(TCB *pTask);
 TCB *kGetRunningTask(void);
-TCB *kGetNextTaskToRun(void);
-void kAddTaskToReadyList(TCB *pTask);
+static TCB *kGetNextTaskToRun(void);
+static BOOL kAddTaskToReadyList(TCB *pTask);
 void kSchedule(void);
 BOOL kScheduleInInterrupt(void);
 void kDecreaseProcessorTime(void);
 BOOL kIsProcessorTimeExpired(void);
-TCB *kRemoveTaskFromReadyList(QWORD id);
+static TCB *kRemoveTaskFromReadyList(QWORD id);
 BOOL kChangePriority(QWORD id, BYTE priority);
 BOOL kEndTask(QWORD id);
 void kExitTask(void);

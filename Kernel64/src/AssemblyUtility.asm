@@ -7,7 +7,7 @@ global kInPortByte, kOutPortByte
 global kLoadGDTR, kLoadTR, kLoadIDTR
 global kEnableInterrupt, kDisableInterrupt
 global kReadRFLAGS, kReadTSC
-global kSwitchContext, kHlt
+global kSwitchContext, kHlt, kTestAndSet
 
 SECTION .text
 
@@ -207,4 +207,24 @@ kSwitchContext:
 kHlt:
     hlt     ; Put the processor into standby
     hlt
+    ret
+
+; if *Dst == compValue 
+;   *Dst = Src  // Atomic Operation
+;   PARAM
+;   1st rdi -> *Dst
+;   2nd rsi -> compValue
+;   3rd rdx -> Src
+kTestAndSet:
+    mov rax, rsi
+    lock cmpxchg byte[rdi], dl
+    je .SUCCESS
+
+; else
+.NOTSAME:
+    mov rax, 0x00
+    ret
+
+.SUCCESS:
+    mov rax, 0x01
     ret

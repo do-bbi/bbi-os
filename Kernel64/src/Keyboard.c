@@ -2,6 +2,7 @@
 #include "AssemblyUtil.h"
 #include "Keyboard.h"
 #include "Queue.h"
+#include "Sync.h"
 
 // 출력 버퍼(Port 0x60) 수신 데이터 확인
 BOOL kIsOutputBufferFull(void) {
@@ -49,11 +50,11 @@ BOOL kWaitForACKAndPutOtherScanCode(void) {
 BOOL kActivateKeyboard(void) {
     int i, j;
 
-    BOOL previousInterrupt;
+    BOOL prevInterrupt;
     BOOL result;
 
     // Diasbled Interrupt
-    previousInterrupt = kSetInterruptFlag(FALSE);
+    prevInterrupt = kSetInterruptFlag(FALSE);
 
     // 컨트롤 레지스터(Port 0x64)에 키보드 활성화 커맨드(0xAE)를 전달하여 키보드 디바이스 활성화
     kOutPortByte(0x64, 0xAE);
@@ -74,7 +75,7 @@ BOOL kActivateKeyboard(void) {
     result = kWaitForACKAndPutOtherScanCode();
 
     // 이전 인터럽트 상태 복원
-    kSetInterruptFlag(previousInterrupt);
+    kSetInterruptFlag(prevInterrupt);
 
     return result;
 }
@@ -90,12 +91,12 @@ BYTE kGetKeyboardScanCode(void) {
 // 키보드 상태 LED ON/OFF
 BOOL kChangeKeyboardLED( BOOL isCapsLockOn, BOOL isNumLockOn, BOOL isScrollLockOn ) {    
     int i, j;
-    BOOL previousInterrupt;
+    BOOL prevInterrupt;
     BOOL result;
     BYTE data;
 
     // 인터럽트 비활성화
-    previousInterrupt = kSetInterruptFlag(FALSE);
+    prevInterrupt = kSetInterruptFlag(FALSE);
 
     for(i = 0; i < 0xFFFF; ++i) {
         if(!kIsInputBufferFull())
@@ -111,7 +112,7 @@ BOOL kChangeKeyboardLED( BOOL isCapsLockOn, BOOL isNumLockOn, BOOL isScrollLockO
     
     // ACK 수신 대기
     if(kWaitForACKAndPutOtherScanCode() == FALSE) {
-        kSetInterruptFlag(previousInterrupt);   // Restore previous interrupt mode
+        kSetInterruptFlag(prevInterrupt);   // Restore previous interrupt mode
         return FALSE;
     }
 
@@ -124,7 +125,7 @@ BOOL kChangeKeyboardLED( BOOL isCapsLockOn, BOOL isNumLockOn, BOOL isScrollLockO
 
     // ACK 수신 대기
     result = kWaitForACKAndPutOtherScanCode();
-    kSetInterruptFlag(previousInterrupt);       // Restore previous interrupt mode
+    kSetInterruptFlag(prevInterrupt);       // Restore previous interrupt mode
 
     return result;
 }
@@ -407,7 +408,7 @@ BOOL kInitializeKeyboard(void) {
 BOOL kConvertScanCodeAndPutQueue(BYTE scanCode) {
     KEYDATA data;
     BOOL result = FALSE;
-    BOOL previousInterrupt;
+    BOOL prevInterrupt;
 
     // Assign scan code to key data
     data.scanCode = scanCode;
@@ -415,13 +416,13 @@ BOOL kConvertScanCodeAndPutQueue(BYTE scanCode) {
     // Convert scan code to ASCII & assign it to key data
     if(kConvertScanCodeToASCIICode(scanCode, &(data.asciiCode), &data.flags)) {
         // Deactivate Interrupt
-        previousInterrupt = kSetInterruptFlag(FALSE);
+        prevInterrupt = kLockForSystemData();
 
         // Insert Key to queue
         result = kPutQueue(&gKeyQueue, &data);
 
         // Restore Interrupt flags
-        kSetInterruptFlag(previousInterrupt);
+        kUnlockForSystemData(prevInterrupt);
     }
 
     return result;
@@ -429,19 +430,19 @@ BOOL kConvertScanCodeAndPutQueue(BYTE scanCode) {
 
 BOOL kGetKeyFromKeyQueue(KEYDATA *pData) {
     BOOL result;
-    BOOL previousInterrupt;
+    BOOL prevInterrupt;
 
     if(kIsQueueEmpty(&gKeyQueue))
         return FALSE;
 
     // Deactivate Interrupt
-    previousInterrupt = kSetInterruptFlag(FALSE);
+    prevInterrupt = kLockForSystemData();
 
     // Pop data from queue
     result = kGetQueue(&gKeyQueue, pData);
 
     // Restore Interrupt Flags
-    kSetInterruptFlag(previousInterrupt);
+    kUnlockForSystemData(prevInterrupt);
 
     return result;
 }

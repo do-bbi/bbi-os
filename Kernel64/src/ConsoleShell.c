@@ -6,6 +6,7 @@
 #include "RTC.h"
 #include "Task.h"
 #include "AssemblyUtil.h"
+#include "Sync.h"
 
 SHELLCOMMANDENTRY gCommandTable[] = {
     {"help",            "Show Help",                    kHelp},
@@ -22,8 +23,9 @@ SHELLCOMMANDENTRY gCommandTable[] = {
     {"changepriority",  "Change Task Priority, ex) "
                         "changepriority $ID $PR(0~4)",  kChangeTaskPriority},
     {"tasklist",        "Show Task List",               kShowTaskList},
-    {"killtask",        "Kill Task, ex) killtask $ID",  kKillTask},
+    {"killtask",        "End Task, ex) killtask $ID or 0xffffffff(All Task)",  kKillTask},
     {"cpuload",         "Show Processor Load",          kCPULoad},
+    {"testmutex",       "Test Mutex Function",          kTestMutex}
 };
 
 void kStartConsoleShell(void) {
@@ -403,20 +405,18 @@ static void kTestTask1(void) {
 // Task 2 - Print a Rotating Pinwheel at a Specific Location with referring to Task ID
 static void kTestTask2(void) {
     int i = 0, count, offset;
-    VGATEXT *pScreen = (VGATEXT *)CONSOLE_VIDEO_MEM_ADDR;
+    VGATEXT * const pScreen = (VGATEXT *)CONSOLE_VIDEO_MEM_ADDR;
 
     TCB *pRunningTask;
-    char pinwheel[4] = {'-', '\\', '|', '/'};
+    static char pinwheel[4] = {'-', '\\', '|', '/'};
 
     // Get Running Task ID to Use Screen Offset
     pRunningTask = kGetRunningTask();
-    offset = (pRunningTask->link.id & 0xFFFFFFFF) * 2;
+    offset = (pRunningTask->link.id & 0xFFFFFFFF) << 1;
     offset = CONSOLE_WIDTH * CONSOLE_HEIGHT - (offset % (CONSOLE_WIDTH * CONSOLE_HEIGHT));
     // offset = 1 + (offset % (CONSOLE_WIDTH * CONSOLE_HEIGHT));
 
     // Print Texts while Rotating the Screen Border
-    // count = 20000;
-    // while(count--) {
     while(TRUE) {
         pScreen[offset].ch = pinwheel[i % 4];
         pScreen[offset].attr = (offset % 15) + 1;
@@ -424,8 +424,6 @@ static void kTestTask2(void) {
 
         // kSchedule();
     }
-
-    kExitTask();
 }
 
 static void kCreateTestTask(const char *pParamBuf) {
@@ -519,7 +517,8 @@ static void kKillTask(const char *pParamBuf) {
     PARAMLIST list;
     char ids[30];
     QWORD id;
-    BOOL result;
+    TCB *pTCB;
+    int i;
 
     kInitializeParam(&list, pParamBuf);
     kGetNextParameter(&list, ids);
@@ -529,13 +528,76 @@ static void kKillTask(const char *pParamBuf) {
     else
         id = kAtoI(ids, 10);
     
-    result = kEndTask(id);
-    kPrintf("Kill Task #0x%q %s\n", id, result ? "Success" : "Failed");
+    if(id != 0xFFFFFFFF) {
+        kPrintf("Kill Task [0x%q]\n", id);
+        if(kEndTask(id))
+            kPrintf("Success\n");
+        else
+            kPrintf("Fail\n");
+    }
+    else {
+        for(i = 2; i < TASK_MAX_COUNT; ++i) {
+            pTCB = kGetTCBInTCBPool(i);
+            id = pTCB->link.id;
+            if((id >> 32)) {
+                kPrintf("Kill Task ID [0x%q]", id);
+                if(kEndTask(id))
+                    kPrintf("Success\n");
+                else
+                    kPrintf("Fail\n");
+            }
+        }
+    }
 }
 
 // Show CPU Usage Rate
 static void kCPULoad(const char *pParamBuf) {
     kPrintf("Current Processor Load = %d%%\n", kGetProcessorLoad());
+}
+
+static MUTEX gMutex;
+static volatile QWORD gAdder = 1;
+
+static void kPrintNumberTask(void) {
+    int i, j;
+    QWORD waitCnt;
+
+    // 50ms 정도 대기해서 콘솔이 출력하는 메시지가 안 겹치도록 양보
+    waitCnt = kGetTickCount() + 50;
+    while(kGetTickCount() < waitCnt)
+        kSchedule();
+
+    for(i = 0 ; i < 5; ++i) {
+        kLock(&gMutex);
+
+        kPrintf("Task ID [0x%Q] Value[%d]\n", kGetRunningTask()->link.id, gAdder);
+        gAdder++;
+
+        kUnlock(&gMutex);
+
+        // Stall Processor
+        for(j = 0; j < 3000; ++j);
+    }
+
+    // 1000ms 정도 대기해서 콘솔이 출력하는 메시지가 안 겹치도록 양보
+    waitCnt = kGetTickCount() + 1000;
+    while(kGetTickCount() < waitCnt)
+        kSchedule();
+
+    kExitTask();
+}
+
+static void kTestMutex(const char *pParamBuf) {
+    int i;
+    gAdder = 1;
+
+    kInitializeMutex(&gMutex);
+
+    for(i = 0; i < 3; ++i)
+        kCreateTask(TASK_FLAGS_IDLE, (QWORD)kPrintNumberTask);
+    
+    kPrintf("Wait Util %d Task End...\n", i);
+    kGetCh();
 }
 
 // void kCreateTestTask(const char *pParamBuf) {
