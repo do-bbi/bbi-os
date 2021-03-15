@@ -96,7 +96,9 @@ void Main(void) {
     kSetCursor(PRINT_BLANK_POS, posY);
     kPrintf("PASS\n"), posY++;
 
-    kCreateTask(TASK_PRIORITY_LOWEST | TASK_FLAGS_IDLE, (QWORD)kIdleTask);
+    // Idle Task를 시스템 스레드로 생성
+    kCreateTask(TASK_PRIORITY_LOWEST | TASK_FLAGS_THREAD | 
+                TASK_FLAGS_SYSTEM | TASK_FLAGS_IDLE, 0, 0, (QWORD)kIdleTask);
     kStartConsoleShell();
 
     // while(TRUE) {

@@ -48,5 +48,7 @@ static void kShowTaskList(const char *pParamBuf);
 static void kKillTask(const char *pParamBuf);
 static void kCPULoad(const char *pParamBuf);
 static void kTestMutex(const char *pParmBuf);
+static void kTestThread(const char *pParmBuf);
+static void kShowMatrix(const char *pParmBuf);
 
 #endif  // __CONSOLESHELL_H__

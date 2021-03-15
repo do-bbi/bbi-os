@@ -23,6 +23,6 @@ void kUnlockForSystemData(BOOL interruptFlag);
 
 void kInitializeMutex(MUTEX *pMutex);
 void kLock(MUTEX *pMutex);
-void kUnock(MUTEX *pMutex);
+void kUnlock(MUTEX *pMutex);
 
 #endif  // __SYNC_H__

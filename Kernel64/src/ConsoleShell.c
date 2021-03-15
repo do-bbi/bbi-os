@@ -23,9 +23,12 @@ SHELLCOMMANDENTRY gCommandTable[] = {
     {"changepriority",  "Change Task Priority, ex) "
                         "changepriority $ID $PR(0~4)",  kChangeTaskPriority},
     {"tasklist",        "Show Task List",               kShowTaskList},
-    {"killtask",        "End Task, ex) killtask $ID or 0xffffffff(All Task)",  kKillTask},
+    {"killtask",        "End Task, ex) killtask $ID"
+                        "or -1(All)",                   kKillTask},
     {"cpuload",         "Show Processor Load",          kCPULoad},
-    {"testmutex",       "Test Mutex Function",          kTestMutex}
+    {"testmutex",       "Test Mutex Function",          kTestMutex},
+    {"testthread",      "Test Thread & Process Func",   kTestThread},
+    {"showmatrix",      "Show Matrix Screen",           kShowMatrix}
 };
 
 void kStartConsoleShell(void) {
@@ -442,7 +445,7 @@ static void kCreateTestTask(const char *pParamBuf) {
     // Create Task 1
     case 1:
         for(i = 0; i < kAtoI(counts, 10); ++i) {
-            if(kCreateTask(TASK_PRIORITY_LOW, (QWORD)kTestTask1) == NULL)
+            if(kCreateTask(TASK_PRIORITY_LOW | TASK_FLAGS_THREAD, 0, 0, (QWORD)kTestTask1) == NULL)
                 break;
         }
 
@@ -453,7 +456,7 @@ static void kCreateTestTask(const char *pParamBuf) {
     case 2:
     default:
         for(i = 0; i < kAtoI(counts, 10); ++i) {
-            if(kCreateTask(TASK_PRIORITY_LOW, (QWORD)kTestTask2) == NULL)
+            if(kCreateTask(TASK_PRIORITY_LOW | TASK_FLAGS_THREAD, 0, 0, (QWORD)kTestTask2) == NULL)
                 break;
         }
         
@@ -506,8 +509,11 @@ static void kShowTaskList(const char *pParamBuf) {
                 kPrintf("\n");
             }
 
-            kPrintf("[%d] Task #0x%Q - Priority=%d, Flags=0x%Q\n", ++count, 
-                    pTCB->link.id, GETPRIORITY(pTCB->flags), pTCB->flags);
+            kPrintf("[%d] Task ID[0x%Q]-Priority[%d], Flags[0x%Q], Thread[%d]\n", 
+                    ++count, pTCB->link.id, GETPRIORITY(pTCB->flags), pTCB->flags,
+                    kGetListCount(&pTCB->childThreads));
+            kPrintf("Parent PID[0x%Q]-Memory Addr[0x%Q], Size[0x%Q]\n", 
+                    pTCB->parentPid, pTCB->pMemoryAddr, pTCB->memorySize);
         }
     }
 }
@@ -528,18 +534,25 @@ static void kKillTask(const char *pParamBuf) {
     else
         id = kAtoI(ids, 10);
     
-    if(id != 0xFFFFFFFF) {
-        kPrintf("Kill Task [0x%q]\n", id);
-        if(kEndTask(id))
-            kPrintf("Success\n");
+    if(id != -1) {
+        pTCB = kGetTCBInTCBPool(GETTCBOFFSET(id));
+        id = pTCB->link.id;
+
+        if((id >> 32) && (pTCB->flags & TASK_FLAGS_SYSTEM) == 0x00) {
+            kPrintf("Kill Task [0x%q]\n", id);
+            if(kEndTask(id))
+                kPrintf("Success\n");
+            else
+                kPrintf("Fail\n");
+        }
         else
-            kPrintf("Fail\n");
+            kPrintf("Task doesn't exist or task is system task\n");
     }
     else {
-        for(i = 2; i < TASK_MAX_COUNT; ++i) {
+        for(i = 0; i < TASK_MAX_COUNT; ++i) {
             pTCB = kGetTCBInTCBPool(i);
             id = pTCB->link.id;
-            if((id >> 32)) {
+            if((id >> 32) && (pTCB->flags & TASK_FLAGS_SYSTEM) == 0x00) {
                 kPrintf("Kill Task ID [0x%q]", id);
                 if(kEndTask(id))
                     kPrintf("Success\n");
@@ -557,6 +570,12 @@ static void kCPULoad(const char *pParamBuf) {
 
 static MUTEX gMutex;
 static volatile QWORD gAdder = 1;
+static volatile QWORD gRandNum = 0;
+
+QWORD kRand(void) {
+    gRandNum = (gRandNum * 412153 + 5571031) >> 16;
+    return gRandNum;
+}
 
 static void kPrintNumberTask(void) {
     int i, j;
@@ -594,10 +613,32 @@ static void kTestMutex(const char *pParamBuf) {
     kInitializeMutex(&gMutex);
 
     for(i = 0; i < 3; ++i)
-        kCreateTask(TASK_FLAGS_IDLE, (QWORD)kPrintNumberTask);
+        kCreateTask(TASK_FLAGS_IDLE | TASK_FLAGS_THREAD, 0, 0, (QWORD)kPrintNumberTask);
     
     kPrintf("Wait Util %d Task End...\n", i);
     kGetCh();
+}
+
+void kCreateThreadTask(const char *pParamBuf) {
+    int i = 0;
+
+    for(i = 0; i < 3; ++i)
+        kCreateTask(TASK_FLAGS_IDLE | TASK_FLAGS_THREAD, 0, 0, (QWORD)kTestTask2);
+
+    while(TRUE)
+        kSleep(1);
+}
+
+void kTestThread(const char *pParamBuf) {
+    TCB *pProcess;
+
+    pProcess = kCreateTask(TASK_FLAGS_IDLE | TASK_FLAGS_PROCESS, 
+                            (void *)0xEEEEEEEE, 0x1000, (QWORD)kCreateThreadTask);
+    
+    if(pProcess)
+        kPrintf("Process Create Success [0x%Q]\n", pProcess->link.id);
+    else
+        kPrintf("Process Create Failed\n");
 }
 
 // void kCreateTestTask(const char *pParamBuf) {
@@ -620,3 +661,63 @@ static void kTestMutex(const char *pParamBuf) {
 //         kSwitchContext(&(gTasks[0].context), &(gTasks[1].context));
 //     }
 // }
+
+// 철자를 흘러내리게 하는 스레드
+static void kDropCharactorThread(void) {
+    volatile int i, x;
+    char text[2] = {0, };
+
+    x = kRand() % CONSOLE_WIDTH;
+
+
+    while(TRUE) {
+        // Wait mement
+        kSleep(kRand() % 20);
+        if((kRand() % 20) < 15) {
+            text[0] = ' ';
+            for(i = 0; i < CONSOLE_HEIGHT - 1; ++i) {
+                kPrintStringXY(x, i, text);
+                kSleep(50);
+            }
+        }
+        else {
+            for(i = 0; i < CONSOLE_HEIGHT - 1; ++i) {
+                text[0] = i + kRand();
+                kPrintStringXY(x, i, text);
+                kSleep(50);
+            }
+        }
+    }
+}
+
+// 스레드를 생성하여 매트릭스 화면처럼 보여주는 프로세스
+static void kMatrixProcess(void) {
+    int i;
+
+    for(i = 0; i < 300; ++i) {
+        if(kCreateTask(TASK_FLAGS_THREAD | TASK_PRIORITY_LOW, 0, 0, (QWORD)kDropCharactorThread) == NULL)
+            break;
+        kSleep(kRand() % 5 + 5);
+    }
+
+    kPrintf("%d Thread is created\n", i);
+
+    // 키 입력시 프로세스 종료
+    kGetCh();
+}
+
+static void kShowMatrix(const char *pParamBuf) {
+    TCB *pProcess;
+
+    pProcess = kCreateTask(TASK_FLAGS_PROCESS | TASK_PRIORITY_LOW, (void *)0xE00000, 0xE00000, (QWORD)kMatrixProcess);
+
+    if(pProcess) {
+        kPrintf("Create Process Success - [0x%Q]\n", pProcess->link.id);
+
+        // 태스크 종료까지 대기
+        while(pProcess->link.id >> 32)
+            kSleep(100);
+    }
+    else
+        kPrintf("Create Process Failed\n");
+}

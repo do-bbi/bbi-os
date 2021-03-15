@@ -2,6 +2,7 @@
 #include "Descriptor.h"
 #include "Utility.h"
 #include "Sync.h"
+#include "ConsoleShell.h"
 
 // Structure for Scheduling
 static SCHEDULER        gScheduler;
@@ -63,9 +64,25 @@ static void kFreeTCB(QWORD id) {
     gTCBPoolManager.useCount--;
 }
 
+static TCB *kGetProcessByThread(TCB *pThread) {
+    TCB *pProcess;
+
+    // 만약 내가 프로세스이면 자신을 반환
+    if( pThread->flags & TASK_FLAGS_PROCESS)
+        return pThread;
+
+    // Task가 프로세스가 아니라면, 부모 프로세스로 설정된 태스크 ID를 통해 TCB 풀에서 태스크 자료구조 추출
+    pProcess = kGetTCBInTCBPool(GETTCBOFFSET(pThread->parentPid));
+
+    if(pProcess == NULL || pProcess->link.id != pThread->parentPid)
+        return NULL;
+
+    return pProcess;
+}
+
 // Create Task
-TCB *kCreateTask(QWORD flags, QWORD entryPointAddr) {
-    TCB *pTask;
+TCB *kCreateTask(QWORD flags, void *pMemoryAddr, QWORD memorySize, QWORD entryPointAddr) {
+    TCB *pTask, *pProcess;
     void *pStackAddr;
     BOOL prevFlag;
 
@@ -76,12 +93,42 @@ TCB *kCreateTask(QWORD flags, QWORD entryPointAddr) {
         kUnlockForSystemData(prevFlag);
         return NULL;
     }
+
+    // 현재 프로세스 or 스레드가 속한 프로세스를 검색
+    pProcess = kGetProcessByThread(kGetRunningTask());
+    
+    if(pProcess == NULL) {
+        kFreeTCB(pTask->link.id);
+        kUnlockForSystemData(prevFlag);
+        return NULL;
+    }
+
+    // Task가 스레드인 경우 부모 프로세스 정보를 상속
+    if(flags & TASK_FLAGS_THREAD) {
+        pTask->parentPid = pProcess->link.id;
+        pTask->pMemoryAddr = pProcess->pMemoryAddr;
+        pTask->memorySize = pProcess->memorySize;
+
+        // 부모 프로세스의 스레드 리스트에 자식 스레드 추가
+        kAddListToTail(&pProcess->childThreads, &pTask->threadLink);
+    }
+    else {
+        pTask->parentPid = pProcess->link.id;
+        pTask->pMemoryAddr = pMemoryAddr;
+        pTask->memorySize = memorySize;
+    }
+
+    // Thread id를 Task id로 설정
+    pTask->threadLink.id = pTask->link.id;
     
     kUnlockForSystemData(prevFlag);
     pStackAddr = (void *)(TASK_STACK_POOL_ADDR + (TASK_STACK_SIZE * GETTCBOFFSET(pTask->link.id)));
 
     // TCB를 설정한 후 준비 리스트에 삽입하여 스케줄링될 수 있도록 함
     kSetUpTask(pTask, flags, entryPointAddr, pStackAddr, TASK_STACK_SIZE);
+
+    // 자식 스레드 리스트를 초기화
+    kInitializeList(&pTask->childThreads);
 
     prevFlag = kLockForSystemData();
     kAddTaskToReadyList(pTask);
@@ -94,10 +141,14 @@ TCB *kCreateTask(QWORD flags, QWORD entryPointAddr) {
 static void kSetUpTask(TCB *pTCB, QWORD flags, QWORD entryPointAddr, void *pStackAddr, QWORD stackSize) {
     // 콘텍스트 초기화
     kMemSet(pTCB->context.registers, 0, sizeof(pTCB->context.registers));
-    
+
     // 스택에 관련된 RSP, RBP 레지스터 설정
-    pTCB->context.registers[TASK_RSP_OFFSET] = (QWORD)pStackAddr + stackSize;
-    pTCB->context.registers[TASK_RBP_OFFSET] = (QWORD)pStackAddr + stackSize;
+    pTCB->context.registers[TASK_RSP_OFFSET] = (QWORD)pStackAddr + stackSize - 8;
+    pTCB->context.registers[TASK_RBP_OFFSET] = (QWORD)pStackAddr + stackSize - 8;
+
+    // Return Address 영역에 kExitTask() 함수의 주소를 삽입하여
+    // Task의 Entry Point 함수를 빠져나감과 동시에 kExitTask() 함수로 Return
+    *(QWORD *)((QWORD)pStackAddr + stackSize - 8) = (QWORD)kExitTask;
 
     // 세그먼트 셀렉터 설정
     pTCB->context.registers[TASK_CS_OFFSET] = GDT_KERNEL_CODE_SEGMENT;
@@ -123,6 +174,7 @@ static void kSetUpTask(TCB *pTCB, QWORD flags, QWORD entryPointAddr, void *pStac
 // Initialize Scheduler
 void kInitializeScheduler(void) {
     int i;
+    TCB *pTask;
 
     kInitializeTCBPool();
 
@@ -132,9 +184,23 @@ void kInitializeScheduler(void) {
     }
     kInitializeList(&(gScheduler.waitList));
 
+    // TCB를 할당 받아 부팅을 수행할 Task를 Kernel 최초의 Process로 설정
+    pTask = kAllocateTCB();
+    gScheduler.pRunningTask = pTask;
+    
+    // 가장 높은 우선순위의 시스템 프로세스로 설정
+    pTask->flags = TASK_PRIORITY_HIGHEST | TASK_FLAGS_PROCESS | TASK_FLAGS_SYSTEM;
+    pTask->parentPid = pTask->link.id;  // 최초 프로세스이므로, 부모 프로세스는 자기 자신으로 지정
+
+    pTask->pMemoryAddr = (void *)0x100000;  // 메모리 영역은 커널 코드, 데이터가 존재하는 1 MB ~ 6 MB로 설정
+    pTask->memorySize = 0x500000;
+
+    pTask->pStackAddr = (void *)0x600000;   // 스택은 커널 스택이 존재하는 6MB ~ 7MB로 설정
+    pTask->stackSize = (void *)0x100000;
+
     // Allocate Task & Set Priority to HIGHEST
-    gScheduler.pRunningTask = kAllocateTCB();
-    gScheduler.pRunningTask->flags = TASK_PRIORITY_HIGHEST;
+    // gScheduler.pRunningTask = kAllocateTCB();
+    // gScheduler.pRunningTask->flags = TASK_PRIORITY_HIGHEST;
 
     // Used to calculate Processor Usage rate
     gScheduler.idleTime = 0;
@@ -363,6 +429,9 @@ BOOL kEndTask(QWORD id) {
     else {
         pTarget = kRemoveTaskFromReadyList(id);
         if(pTarget == NULL) {
+            if(GETTCBOFFSET(id) < 2)
+                return FALSE;
+            
             pTarget = kGetTCBInTCBPool(GETTCBOFFSET(id));
             if(pTarget) {
                 pTarget->flags |= TASK_FLAGS_ENDTASK;
@@ -370,7 +439,7 @@ BOOL kEndTask(QWORD id) {
             }
             
             kUnlockForSystemData(prevFlag);
-            return FALSE;
+            return TRUE;
         }
 
         pTarget->flags |= TASK_FLAGS_ENDTASK;
@@ -434,12 +503,13 @@ QWORD kGetProcessorLoad(void) {
 }
 
 void kIdleTask(void) {
-    TCB *pTask;
+    TCB *pTask, *pChildThread, *pProcess;
     QWORD lastMeasureTickCount, lastSpendTickInIdleTask;
     QWORD curMeasureTickCount, curSpendTickInIdleTask;
-
     BOOL prevFlag;
+    int i, cnt;
     QWORD taskId;
+    void *pThreadLink;
 
     lastSpendTickInIdleTask = gScheduler.idleTime;
     lastMeasureTickCount = kGetTickCount();
@@ -471,12 +541,57 @@ void kIdleTask(void) {
                     kUnlockForSystemData(prevFlag);
                     break;
                 }
+
+                if(pTask->flags & TASK_FLAGS_PROCESS) {
+                    // 프로세스를 종료할 때, 자식 스레드가 존재하면 
+                    // 스레드를 모두 종료하고, 다시 pTask->childThreads에 삽입
+                    cnt = kGetListCount(&pTask->childThreads);
+                    for(i = 0; i < cnt; ++i) {
+                        // 스레드 링크의 주소에서 스레드를 꺼내 종료시킴
+                        pThreadLink = (TCB *)kRemoveListFromHead(&pTask->childThreads);
+                        if(pThreadLink == NULL)
+                            break;
+
+                        // 자식 스레드 리스트에 연결된 정보 = 
+                        // &(Struct Task->ThreadLink)
+                        pChildThread = GETTCBFROMTHREADLINK(pThreadLink);
+
+                        // 다시 자식 스레드 리스트에 삽입하여, 해당 스레드가 종료될 때
+                        // 자식 스레드가 프로세스를 찾아 스스로 리스트에서 제거하도록 만듦
+                        kAddListToTail(&pTask->childThreads, &pChildThread->threadLink);
+
+                        // 자식 스레드를 찾아 종료
+                        kEndTask(pChildThread->link.id);
+                    }
+
+                    // 아직 자식 스레드가 남아 있다면, 자식 스레드가 모두 종료될 때 까지 
+                    // 기다려야 하므로 다시 대기 리스트에 삽입
+                    if(kGetListCount(&pTask->childThreads) > 0) {
+                        kAddListToTail(&gScheduler.waitList, pTask);
+
+                        // 임계 영역 끝
+                        kUnlockForSystemData(prevFlag);
+                        continue;
+                    }
+                    else {
+                        // @TODO
+                        // 프로세스를 종료해야 하므로, 할당받은 메모리 영역 반환
+                    }
+                }
+                else if(pTask->flags & TASK_FLAGS_THREAD) {
+                    // 스레드라면 pProcess->childThread에서 제거
+                    pProcess = kGetProcessByThread(pTask);
+                    if(pProcess != NULL)
+                        kRemoveList(&pProcess->childThreads, pTask->link.id);
+                }
+                
                 taskId = pTask->link.id;
                 kFreeTCB(pTask->link.id);
 
                 kUnlockForSystemData(prevFlag);
                 
                 kPrintf("IDLE - Task #0x%q is completely ended\n", pTask->link.id);
+                // kPrintf("%s", CONSOLE_SHELL_PROMPT_MESSAGE);
             }
         }
 

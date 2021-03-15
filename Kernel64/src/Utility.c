@@ -1,6 +1,7 @@
 #include "Utility.h"
 #include "AssemblyUtil.h"
-#include <stdarg.h>
+#include "Console.h"
+// #include <stdarg.h>
 
 /*
     va_list: 가변 인자 목록, 가변 인자 주소를 저장한 포인터형 변수
@@ -123,15 +124,16 @@ QWORD kHexStringToQword(const char *pBuf) {
     int i;
 
     for(i = 0; i < pBuf[i]; ++i) {
-        value *= 16;
+        value <<= 4;
         if('A' <= pBuf[i] && pBuf[i] <= 'Z')
-            value = pBuf[i] - 'A' + 10;
+            value += pBuf[i] - 'A' + 10;
         else if('a' <= pBuf[i] && pBuf[i] <= 'z')
-            value = pBuf[i] - 'a' + 10;
+            value += pBuf[i] - 'a' + 10;
         else if('0' <= pBuf[i] && pBuf[i] <= '9')
             value += pBuf[i] - '0';
         else
             return -1;
+        kPrintf("%d\n", value);
     }
 
     return value;
@@ -149,10 +151,7 @@ long kDecStringToLong(const char *pBuf) {
         value += pBuf[i] - '0';
     }
 
-    if(isNegative)
-        value = -value;
-
-    return value;
+    return isNegative ? -value : value;
 }
 
 int kItoA(long value, char *pBuf, int radix) {
@@ -315,4 +314,12 @@ int kVSPrintf(char *pBuf, const char *pFormatStr, va_list ap) {
 
 QWORD kGetTickCount(void) {
     return gTickCount;
+}
+
+// milisecond 동안 대기
+void kSleep(QWORD ms) {
+    QWORD lastTickCnt = gTickCount;
+
+    while(gTickCount - lastTickCnt <= ms)
+        kSchedule();
 }

@@ -23,5 +23,6 @@ void kReverseString(char *pBuf);
 int kSPrintf(char *pBuf, const char *pFormatStr, ...);
 int kVSPrintf(char *pBuf, const char *pFormatStr, va_list ap);
 QWORD kGetTickCount(void);
+void kSleep(QWORD ms);
 
 #endif /*__UTILITY_H__*/

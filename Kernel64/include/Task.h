@@ -63,12 +63,18 @@
 
 // Flags of Tasks
 #define TASK_FLAGS_ENDTASK          (0x8000000000000000)
+#define TASK_FLAGS_SYSTEM           (0x4000000000000000)
+#define TASK_FLAGS_PROCESS          (0x2000000000000000)
+#define TASK_FLAGS_THREAD           (0x1000000000000000)
 #define TASK_FLAGS_IDLE             (0x0800000000000000)
 
 // Macro for Priority
 #define GETPRIORITY(x)              ((x) & 0xFF)
 #define SETPRIORITY(x, pr)          ((x) = ((x) & 0xFFFFFFFFFFFFFF00) | pr)
 #define GETTCBOFFSET(x)             ((x) & 0xFFFFFFFF)
+
+// 자식 스레드 링크에 연결된 threadLink에서 TCB(Task Control Block) 위치를 계산해 반환
+#define GETTCBFROMTHREADLINK(x)     (TCB *)((QWORD)(x) - offsetof(TCB, threadLink));
 
 // Struct
 #pragma pack(push, 1)
@@ -79,10 +85,16 @@ typedef struct kContextStruct {
 
 typedef struct kTaskControlBlockStruct {
     LISTLINK link;
-    CONTEXT context;
-    
     QWORD flags;
 
+    void *pMemoryAddr;
+    QWORD memorySize;
+
+    LISTLINK threadLink;
+    LIST childThreads;
+    QWORD parentPid;
+
+    CONTEXT context;
     void *pStackAddr;
     QWORD stackSize;
 } TCB;
@@ -128,7 +140,7 @@ typedef struct kSchedulerStruct {
 static void kInitializeTCBPool(void);
 static TCB *kAllocateTCB(void);
 static void kFreeTCB(QWORD id);
-TCB *kCreateTask(QWORD flags, QWORD entryPointAddr);
+TCB *kCreateTask(QWORD flags, void *pMemoryAddr, QWORD memorySize, QWORD entryPointAddr);
 static void kSetUpTask(TCB *pTCB, QWORD flags, QWORD entryPointerAddr, void *pStackAddr, QWORD stackSize);
 
 // Function For Scheduler
@@ -150,6 +162,7 @@ int kGetTaskCount(void);
 TCB *kGetTCBInTCBPool(int offset);
 BOOL kIsTaskExist(QWORD id);
 QWORD kGetProcessorLoad(void);
+static TCB *kGetProcessByThread(TCB *pThread);
 
 void kIdleTask(void);
 void kHaltProcessorByLoad(void);

@@ -11,6 +11,9 @@
 #define FALSE   0
 #define NULL    0
 
+// stddef.h에 포함된 offsetof() Macro 차용
+#define	offsetof(TYPE, MEMBER) __builtin_offsetof (TYPE, MEMBER)
+
 #pragma pack( push, 1 )
 
 // 비디오 모드 중 텍스트 모드 화면을 구성하는 자료구조
