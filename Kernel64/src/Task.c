@@ -644,5 +644,5 @@ QWORD kGetLastFPUUsedTaskID(void) {
 }
 
 void kSetLastFPUUsedTaskID(QWORD taskID) {
-    gScheduler.lastFPUUsedTaskID - taskID;
+    gScheduler.lastFPUUsedTaskID = taskID;
 }

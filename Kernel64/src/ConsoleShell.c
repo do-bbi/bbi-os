@@ -724,7 +724,7 @@ static void kShowMatrix(const char *pParamBuf) {
 }
 
 // Test FPU
-static void kFPUTestTask(const char *pParmBuf) {
+static void kFPUTestTask(void) {
     double val1, val2;
     TCB *pRunningTask;
 
@@ -737,7 +737,7 @@ static void kFPUTestTask(const char *pParmBuf) {
     pRunningTask = kGetRunningTask();
 
     // Task id를 얻어 화면 offset으로 사용
-    offset = (pRunningTask->link.id & 0xFFFFFFFF) >> 1;
+    offset = (pRunningTask->link.id & 0xFFFFFFFF) << 1;
     offset = CONSOLE_WIDTH * CONSOLE_HEIGHT - (offset % (CONSOLE_WIDTH * CONSOLE_HEIGHT));
 
     while(TRUE) {
@@ -760,9 +760,8 @@ static void kFPUTestTask(const char *pParmBuf) {
             kPrintf("FPU seems wrong, [%f] != [%f]\n", val1, val2);
             break;
         }
-        cnt++;
 
-        pScreen[offset].ch = datas[cnt % 4];
+        pScreen[offset].ch = datas[cnt++ % 4];
         pScreen[offset].attr = (offset % 15) + 1;
     }
 }
@@ -779,7 +778,8 @@ static void kTestPIE(const char *pParmBuf) {
 
     ret = (volatile double)A / (volatile double)B;
 
-    kPrintf("%d.%d%d\n", (QWORD)ret, ((QWORD)(ret * 10) % 10), ((QWORD)(ret * 100) % 10));
+    // kPrintf("%d.%d%d\n", (QWORD)ret, ((QWORD)(ret * 10) % 10), ((QWORD)(ret * 100) % 10));
+    kPrintf("%f\n", ret);
 
     for(i = 0; i < 100; ++i)
         kCreateTask(TASK_FLAGS_IDLE | TASK_FLAGS_THREAD, 0, 0, (QWORD)kFPUTestTask);

@@ -70,6 +70,7 @@ kSwitchAndExecute64bitKernel:
     ; TS[3]=1(Task Switched), EM[2]=0(No FPU Emulation), MP[1]=1(Monitoring Processor)
     mov eax, cr0        ; EAX 레지스터에 CR0 컨트롤 레지스터 값을 저장
     or eax, 0xE000000E  ; PG[31]=1, CD[30]=1, NW[29]=1, TS[3]=1, EM[2]=1, MP[1]=1
+
     xor eax, 0x60000004 ; CD[30]^1=0, NW[29]^1=0, EM[2]^1=0
     mov cr0, eax        ; CR0 컨트롤 레지스터에 EAX 레지스터의 값을 저장
 

@@ -127,7 +127,7 @@ void kDeviceNotAvailableHandler(int vectorNumber) {
     // 이전 FPU 사용 Task가 있다면 FPU Context를 저장
     if(lastFPUTaskID != TASK_INVALID_ID) {
         pFPUTask = kGetTCBInTCBPool(GETTCBOFFSET(lastFPUTaskID));
-        if(pFPUTask && pFPUTask->link.id == lastFPUTaskID)
+        if(pFPUTask != NULL && pFPUTask->link.id == lastFPUTaskID)
             kSaveFPUContext(pFPUTask->fpuCtx);
     }
 

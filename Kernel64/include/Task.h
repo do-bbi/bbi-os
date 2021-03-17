@@ -83,7 +83,7 @@ typedef struct kContextStruct {
     QWORD registers[TASK_REGISTER_COUNT];
 } CONTEXT;
 
-// FPU Context를 위해, Struct Size를 16 Bytes Align
+// FPU Context를 위해, Struct Size를 16 Bytes Aligned
 typedef struct kTaskControlBlockStruct {
     LISTLINK link;
     QWORD flags;
@@ -104,6 +104,9 @@ typedef struct kTaskControlBlockStruct {
     QWORD stackSize;
 
     BOOL isFPUUsed;
+
+    // Make struct TCB 16 Bytes Aligned
+    char pad[11];
 } TCB;
 
 // Struct For Managing TCB Pool
