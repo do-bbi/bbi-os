@@ -255,13 +255,14 @@ int kSPrintf(char *pBuf, const char *pFormatStr, ...) {
 }
 
 int kVSPrintf(char *pBuf, const char *pFormatStr, va_list ap) {
-    QWORD i, j;
+    QWORD i, j, offset;
     int fmtLen, cpyLen, bufIdx = 0;
     char *pCpyStr;
 
     union Value {
         QWORD ul;
-        int i;    
+        int i;
+        double lf;
     } value;
 
     fmtLen = kStrLen(pFormatStr);
@@ -296,6 +297,24 @@ int kVSPrintf(char *pBuf, const char *pFormatStr, va_list ap) {
                     // 출력 버퍼에 복사하고, 출력한 길이만큼 버퍼 인덱스를 이동
                     value.ul = (QWORD)(va_arg(ap, QWORD));
                     bufIdx += kItoA(value.ul, pBuf + bufIdx, 16);
+                    break;
+                case 'f':
+                    value.lf = (double)(va_arg(ap, double));
+                    // Round to 3 decimal places
+                    value.lf += 0.005;
+
+                    offset = bufIdx; 
+                    pBuf[bufIdx++] = '0' + (QWORD)(value.lf * 100) % 10;
+                    pBuf[bufIdx++] = '0' + (QWORD)(value.lf * 10) % 10;
+                    pBuf[bufIdx++] = '.';
+
+                    do {
+                        pBuf[bufIdx++] = '0' + (QWORD)(value.lf) % 10;
+                        value.lf /= 10;
+                    } while((QWORD)value.lf);
+                    
+                    pBuf[bufIdx] = NULL;
+                    kReverseString(pBuf + offset);
                     break;
                 default:
                     pBuf[bufIdx++] = pFormatStr[i];

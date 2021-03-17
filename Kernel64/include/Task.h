@@ -83,6 +83,7 @@ typedef struct kContextStruct {
     QWORD registers[TASK_REGISTER_COUNT];
 } CONTEXT;
 
+// FPU Context를 위해, Struct Size를 16 Bytes Align
 typedef struct kTaskControlBlockStruct {
     LISTLINK link;
     QWORD flags;
@@ -91,12 +92,18 @@ typedef struct kTaskControlBlockStruct {
     QWORD memorySize;
 
     LISTLINK threadLink;
-    LIST childThreads;
     QWORD parentPid;
 
+    QWORD fpuCtx[512/8];
+    
+    LIST childThreads;
+
     CONTEXT context;
+
     void *pStackAddr;
     QWORD stackSize;
+
+    BOOL isFPUUsed;
 } TCB;
 
 // Struct For Managing TCB Pool
@@ -132,6 +139,9 @@ typedef struct kSchedulerStruct {
 
     // Processor time used for idle tasks 
     QWORD idleTime;
+
+    // Task ID using FPU last time
+    QWORD lastFPUUsedTaskID;
 } SCHEDULER;
 
 #pragma pack(pop)
@@ -164,7 +174,12 @@ BOOL kIsTaskExist(QWORD id);
 QWORD kGetProcessorLoad(void);
 static TCB *kGetProcessByThread(TCB *pThread);
 
+// Function For IDLE Task
 void kIdleTask(void);
 void kHaltProcessorByLoad(void);
+
+// Function For FPU
+QWORD kGetLastFPUUsedTaskID(void);
+void kSetLastFPUUsedTaskID(QWORD taskID);
 
 #endif  // __TASK_H__

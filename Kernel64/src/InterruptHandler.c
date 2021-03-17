@@ -5,6 +5,7 @@
 #include "Utility.h"
 #include "Task.h"
 #include "Descriptor.h"
+#include "AssemblyUtil.h"
 
 // Handler for Common Exceptions
 void kCommonExceptionHandler(int vectorNumber, QWORD errorCode) {
@@ -91,4 +92,55 @@ void kTimerHandler(int vectorNumber) {
     // Context Switching if Processor Time is expired
     if( kIsProcessorTimeExpired() )
         kScheduleInInterrupt();
+}
+
+// Device Not Available Exception Handler
+void kDeviceNotAvailableHandler(int vectorNumber) {
+    TCB *pFPUTask, *pCurTask;
+    QWORD lastFPUTaskID;
+
+    /****************************************************/
+    // Print FPU Exception occurred
+    char msgBuffer[] = "[EXC:  , ]";
+    static int gFPUInterruptCnt = 0;
+
+    // Print Exception Vector ↗ of screen
+    msgBuffer[5] = '0' + vectorNumber / 10;
+    msgBuffer[6] = '0' + vectorNumber % 10;
+    // Print Exception occurred
+    msgBuffer[8] = '0' + gFPUInterruptCnt;
+    gFPUInterruptCnt = (gFPUInterruptCnt + 1) % 10;
+
+    kPrintStringXY(70, 0, msgBuffer);
+
+    // CR0 컨트롤 레지스터의 TS 비트를 0으로 Clear
+    kClearTS();
+
+    // 이전에 FPU를 사용한 태스크가 있는지 확인해 있다면 FPU의 상태를 태스크에 저장
+    lastFPUTaskID = kGetLastFPUUsedTaskID();
+    pCurTask = kGetRunningTask();
+
+    // 이전에 FPU를 사용했던 Task가 현재 Task라면 Handler 종료
+    if(lastFPUTaskID == pCurTask->link.id)
+        return;
+    
+    // 이전 FPU 사용 Task가 있다면 FPU Context를 저장
+    if(lastFPUTaskID != TASK_INVALID_ID) {
+        pFPUTask = kGetTCBInTCBPool(GETTCBOFFSET(lastFPUTaskID));
+        if(pFPUTask && pFPUTask->link.id == lastFPUTaskID)
+            kSaveFPUContext(pFPUTask->fpuCtx);
+    }
+
+    // 현재 태스크가 FPU를 사용한 적이 있는지 확인해
+    // FPU를 사용한 적이 없다면 초기화
+    // 사용한 적이 있다면 FPU 콘텍스트를 복원
+    if( pCurTask->isFPUUsed == FALSE) {
+        kInitializeFPU();
+        pCurTask->isFPUUsed = TRUE;
+    }
+    else
+        kLoadFPUContext(pCurTask->fpuCtx);
+    
+    // FPU를 사용한 Task ID를 현재 태스크로 변경
+    kSetLastFPUUsedTaskID(pCurTask->link.id);
 }

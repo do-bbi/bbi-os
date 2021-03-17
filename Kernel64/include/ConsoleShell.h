@@ -50,5 +50,6 @@ static void kCPULoad(const char *pParamBuf);
 static void kTestMutex(const char *pParmBuf);
 static void kTestThread(const char *pParmBuf);
 static void kShowMatrix(const char *pParmBuf);
+static void kTestPIE(const char *pParmBuf);
 
 #endif  // __CONSOLESHELL_H__

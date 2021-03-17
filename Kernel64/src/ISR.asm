@@ -5,7 +5,7 @@ SECTION .text   ; Text Section
 ; Import functions declared externally
 ; Handler for Exceptions, Interrupts
 extern kCommonExceptionHandler, kCommonInterruptHandler, kKeyboardHandler
-extern kTimerHandler
+extern kTimerHandler, kDeviceNotAvailableHandler
 
 ; Export functions to use externally
 ; ISR for Exception
@@ -156,7 +156,7 @@ kISRDeviceNotAvaliable:
     KSAVECONTEXT
 
     mov rdi, 7
-    call kCommonExceptionHandler
+    call kDeviceNotAvailableHandler
 
     KLOADCONTEXT
     iretq           ; Return to original code after handler

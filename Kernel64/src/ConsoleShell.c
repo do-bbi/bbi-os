@@ -28,7 +28,8 @@ SHELLCOMMANDENTRY gCommandTable[] = {
     {"cpuload",         "Show Processor Load",          kCPULoad},
     {"testmutex",       "Test Mutex Function",          kTestMutex},
     {"testthread",      "Test Thread & Process Func",   kTestThread},
-    {"showmatrix",      "Show Matrix Screen",           kShowMatrix}
+    {"showmatrix",      "Show Matrix Screen",           kShowMatrix},
+    {"testpie",         "Test PIE Calculation",         kTestPIE}
 };
 
 void kStartConsoleShell(void) {
@@ -720,4 +721,66 @@ static void kShowMatrix(const char *pParamBuf) {
     }
     else
         kPrintf("Create Process Failed\n");
+}
+
+// Test FPU
+static void kFPUTestTask(const char *pParmBuf) {
+    double val1, val2;
+    TCB *pRunningTask;
+
+    QWORD randVal, cnt = 0;
+
+    int i, offset;
+    char datas[4] = {'-', '\\', '|', '/'};
+    VGATEXT *pScreen = (VGATEXT *)CONSOLE_VIDEO_MEM_ADDR;
+
+    pRunningTask = kGetRunningTask();
+
+    // Task id를 얻어 화면 offset으로 사용
+    offset = (pRunningTask->link.id & 0xFFFFFFFF) >> 1;
+    offset = CONSOLE_WIDTH * CONSOLE_HEIGHT - (offset % (CONSOLE_WIDTH * CONSOLE_HEIGHT));
+
+    while(TRUE) {
+        val1 = 1.0;
+        val2 = 1.0;
+
+        for(i = 0; i < 10; ++i) {
+            randVal = kRand();
+            val1 *= (double)randVal;
+            val2 *= (double)randVal;
+
+            kSleep(1);
+
+            randVal = kRand();
+            val1 /= (double)randVal;
+            val2 /= (double)randVal;
+        }
+
+        if(val1 != val2) {
+            kPrintf("FPU seems wrong, [%f] != [%f]\n", val1, val2);
+            break;
+        }
+        cnt++;
+
+        pScreen[offset].ch = datas[cnt % 4];
+        pScreen[offset].attr = (offset % 15) + 1;
+    }
+}
+
+static void kTestPIE(const char *pParmBuf) {
+    double ret;
+    int i;
+
+    volatile int A = 355;
+    volatile int B = 113;
+
+    kPrintf("PIE Calculation Test\n");
+    kPrintf("Result: 355 / 113 = ");
+
+    ret = (volatile double)A / (volatile double)B;
+
+    kPrintf("%d.%d%d\n", (QWORD)ret, ((QWORD)(ret * 10) % 10), ((QWORD)(ret * 100) % 10));
+
+    for(i = 0; i < 100; ++i)
+        kCreateTask(TASK_FLAGS_IDLE | TASK_FLAGS_THREAD, 0, 0, (QWORD)kFPUTestTask);
 }

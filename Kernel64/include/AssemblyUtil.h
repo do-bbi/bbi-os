@@ -17,4 +17,10 @@ void kSwitchContext(CONTEXT *pCurrentContext, CONTEXT *pNextContext);
 void kHlt(void);
 BOOL kTestAndSet(volatile BYTE *pDst, BYTE compValue, BYTE src);
 
+void kInitializeFPU(void);
+void kSaveFPUContext(void *pFPUContext);
+void kLoadFPUContext(void *pFPUContext);
+void kSetTS(void);
+void kClearTS(void);
+
 #endif  // __ASSEMBLYUTIL_H__

@@ -8,6 +8,7 @@ global kLoadGDTR, kLoadTR, kLoadIDTR
 global kEnableInterrupt, kDisableInterrupt
 global kReadRFLAGS, kReadTSC
 global kSwitchContext, kHlt, kTestAndSet
+global kInitializeFPU, kSaveFPUContext, kLoadFPUContext, kSetTS, kClearTS
 
 SECTION .text
 
@@ -227,4 +228,40 @@ kTestAndSet:
 
 .SUCCESS:
     mov rax, 0x01
+    ret
+
+; Function for FPU
+; Initialize FPU
+;   No Param
+kInitializeFPU:
+    finit           ; Init FPU
+    ret
+    
+; Store FPU Register to FPU Context Buffer
+;   PARAM: FPU Context Buffer Address
+kSaveFPUContext:
+    fxsave [rdi]    ; FPU Register -> FPU Context Buffer
+    ret
+
+; Restore FPU Register from FPU Context Buffer
+kLoadFPUContext:
+    fxrstor [rdi]   ; FPU Context Buffer -> FPU Register
+    ret
+
+; Set TS bit of CR0 Control Register
+;   No PARAM
+kSetTS:
+    push rax        ; Push RAX register value  to stack
+
+    mov rax, cr0    ; cr0 -> rax
+    or rax, 0x08    ; Set TS bit of rax
+    mov cr0, rax    ; rax -> cr0
+
+    pop rax         ; Restore rax register from stack
+    ret
+
+; Clear TS bit of CR0 Control Register
+;   No PARAM
+kClearTS:
+    clts            ; Clear TS bit of CR0
     ret

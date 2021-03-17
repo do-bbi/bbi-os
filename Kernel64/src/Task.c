@@ -130,6 +130,9 @@ TCB *kCreateTask(QWORD flags, void *pMemoryAddr, QWORD memorySize, QWORD entryPo
     // 자식 스레드 리스트를 초기화
     kInitializeList(&pTask->childThreads);
 
+    // Initialize FPU isn't used yet
+    pTask->isFPUUsed = FALSE;
+
     prevFlag = kLockForSystemData();
     kAddTaskToReadyList(pTask);
     kUnlockForSystemData(prevFlag);
@@ -205,6 +208,9 @@ void kInitializeScheduler(void) {
     // Used to calculate Processor Usage rate
     gScheduler.idleTime = 0;
     gScheduler.processorLoad = 0;
+
+    // Initialize Last FPU used Task ID
+    gScheduler.lastFPUUsedTaskID = TASK_INVALID_ID;
 }
 
 // Set Task which is Running
@@ -290,6 +296,18 @@ void kSchedule(void) {
         if((pRunningTask->flags & TASK_FLAGS_IDLE) == TASK_FLAGS_IDLE)
             gScheduler.idleTime += TASK_PROCESSOR_TIME - gScheduler.processorTime;
 
+        // if Next Task == Last FPU used Task
+        // -> Clear TS bit
+        // else 
+        // -> Set TS bit
+        if(gScheduler.lastFPUUsedTaskID != pNextTask->link.id)
+            kSetTS();
+        else
+            kClearTS();
+
+        // 5 tick(ms)
+        gScheduler.processorTime = TASK_PROCESSOR_TIME;
+
         if(pRunningTask->flags & TASK_FLAGS_ENDTASK) {
             kAddListToTail(&(gScheduler.waitList), pRunningTask);
             kSwitchContext(NULL, &(pNextTask->context));
@@ -298,8 +316,6 @@ void kSchedule(void) {
             kAddTaskToReadyList(pRunningTask);
             kSwitchContext(&(pRunningTask->context), &(pNextTask->context));
         }
-
-        gScheduler.processorTime = TASK_PROCESSOR_TIME;  // 5 tick(ms)
     }
 
     kUnlockForSystemData(prevFlag);
@@ -329,9 +345,6 @@ BOOL kScheduleInInterrupt(void) {
     if( (pRunningTask->flags & TASK_FLAGS_IDLE) == TASK_FLAGS_IDLE)
         gScheduler.idleTime += TASK_PROCESSOR_TIME;
 
-    // Update Available Processor time
-    gScheduler.processorTime = TASK_PROCESSOR_TIME; // 5 tick(ms)
-
     if( pRunningTask->flags & TASK_FLAGS_ENDTASK)
         kAddListToTail(&(gScheduler.waitList), pRunningTask);
     else {
@@ -341,9 +354,21 @@ BOOL kScheduleInInterrupt(void) {
 
     kUnlockForSystemData(prevFlag);
 
+    // if Next Task == Last FPU used Task
+    // -> Clear TS bit
+    // else 
+    // -> Set TS bit
+    if(gScheduler.lastFPUUsedTaskID != pNextTask->link.id)
+        kSetTS();
+    else
+        kClearTS();
+
     // Set "Running Task" to NextTask(already got)
     // And Memory Copy it to IST for context swtiching automatically
     kMemCpy(pContextAddress, &(pNextTask->context), sizeof(CONTEXT));
+
+    // Update Available Processor time
+    gScheduler.processorTime = TASK_PROCESSOR_TIME; // 5 tick(ms)
 
     return TRUE;
 }
@@ -612,4 +637,12 @@ void kHaltProcessorByLoad(void) {
     else if(gScheduler.processorLoad < 95) {
         kHlt();
     }
+}
+
+QWORD kGetLastFPUUsedTaskID(void) {
+    return gScheduler.lastFPUUsedTaskID;
+}
+
+void kSetLastFPUUsedTaskID(QWORD taskID) {
+    gScheduler.lastFPUUsedTaskID - taskID;
 }
