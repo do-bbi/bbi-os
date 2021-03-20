@@ -7,6 +7,7 @@
 #include "Task.h"
 #include "AssemblyUtil.h"
 #include "Sync.h"
+#include "BuddyMemory.h"
 
 SHELLCOMMANDENTRY gCommandTable[] = {
     {"help",            "Show Help",                    kHelp},
@@ -29,7 +30,10 @@ SHELLCOMMANDENTRY gCommandTable[] = {
     {"testmutex",       "Test Mutex Function",          kTestMutex},
     {"testthread",      "Test Thread & Process Func",   kTestThread},
     {"showmatrix",      "Show Matrix Screen",           kShowMatrix},
-    {"testpie",         "Test PIE Calculation",         kTestPIE}
+    {"testpie",         "Test PIE Calculation",         kTestPIE},
+    {"buddymeminfo",    "Show Buddy Memory Info",       kShowBuddyMemInfo},
+    {"testseqalloc",    "Test Sequential Alloc & Free", kTestSeqAlloc},
+    {"testrandalloc",   "Test Random Alloc & Free",     kTestRandAlloc}
 };
 
 void kStartConsoleShell(void) {
@@ -177,6 +181,16 @@ static void kHelp(const char *pParamBuf) {
         kGetCursor(&x, &y);
         kSetCursor(maxLen, y);
         kPrintf(" - %s\n", gCommandTable[i].pHelp);
+
+        // 목록이 많을 경우 나눠 출력
+        if( (i != 0) && ((i % 20) == 0) ) {
+            kPrintf("Press any key to continue... ('q' is exit) : ");
+            if(kGetCh() == 'q') {
+                kPrintf("\n");
+                break;
+            }
+            kPrintf("\n");
+        }
     }
 }
 
@@ -783,4 +797,123 @@ static void kTestPIE(const char *pParmBuf) {
 
     for(i = 0; i < 100; ++i)
         kCreateTask(TASK_FLAGS_IDLE | TASK_FLAGS_THREAD, 0, 0, (QWORD)kFPUTestTask);
+}
+
+static void kShowBuddyMemInfo(const char *pParmBuf) {
+    QWORD startAddr, totalSize, metaSize, usedSize;
+
+    kGetBuddyMemoryInfo(&startAddr, &totalSize, &metaSize, &usedSize);
+
+    kPrintf("============== Buddy Memory Info ==============\n");
+    kPrintf("Start Addr: [0x%Q]\n", startAddr);
+    kPrintf("Total Size: [0x%Q]byte [%d]MB\n", totalSize, totalSize / 1024 / 1024);
+    kPrintf("Meta Size:  [0x%Q]byte [%d]KB\n", metaSize, metaSize / 1024);
+    kPrintf("Used Size:  [0x%Q]byte [%d]KB\n", usedSize, usedSize / 1024);
+}
+
+static void kTestSeqAlloc(const char *pParmBuf) {
+    BUDDY_MEMORY *pMemory;
+    long i, j, k;
+    QWORD *pBuffer;
+
+    kPrintf("============== Buddy Memory Test ==============\n");
+    pMemory = kGetBuddyMemoryManager();
+
+    for(i = 0; i < pMemory->maxLevelCnt; ++i) {
+        kPrintf("Block List[%d] Test Start\n", i);
+        kPrintf("Alloc & Compare: ");
+
+        // 모든 블록을 할당 받아 값을 채운 후 검사
+        for(j = 0; j < (pMemory->minBlockCnt >> i); ++j) {
+            pBuffer = kAllocateMemory(MIN_BUDDY_MEMORY_SIZE << i);
+            if(pBuffer == NULL) {
+                kPrintf("\nAllocation Fail\n");
+                return;
+            }
+
+            for(k = 0; k < (MIN_BUDDY_MEMORY_SIZE << i) / 8; ++k)
+                pBuffer[k] = k;
+            
+            for(k = 0; k < (MIN_BUDDY_MEMORY_SIZE << i) / 8; ++k) {
+                if(pBuffer[k] != k) {
+                    kPrintf("\nCompare Failed\n");
+                    return;
+                }
+            }
+
+            // 진행 과정을 .으로 표시
+            kPrintf(".");
+        }
+
+        kPrintf("\nFree: ");
+        // 할당받은 블록을 모두 반환
+        for(j = 0; j < (pMemory->minBlockCnt >> i); ++j) {
+            if(kFreeMemory((void *)(pMemory->startAddr + (MIN_BUDDY_MEMORY_SIZE << i) * j)) == FALSE) {
+                kPrintf("\nFree Fail\n");
+                return;
+            }
+            // 진행 과정을 .으로 표시
+            kPrintf(".");
+        }
+        kPrintf("\n");
+    }
+    kPrintf("Test Complete\n");
+}
+
+static void kRandAllocTask(void) {
+    TCB *pTask;
+    QWORD memSize;
+    char buffer[200];
+    BYTE *pAllocBuf;
+    int i, j, y;
+
+    pTask = kGetRunningTask();
+    y = pTask->link.id % 15 + 9;
+
+    for(j = 0; j < 10; ++j) {
+        // 1 KB ~ 32 MB 사이에 할당
+        do {
+            memSize = ((kRand() % (32 * 1024)) + 1) * 1024;
+            pAllocBuf = kAllocateMemory(memSize);
+
+            // 만일 버퍼를 할당받지 못하면 잠시 대기 후 재시도
+            if(pAllocBuf == 0)
+                kSleep(1);
+        } while(pAllocBuf == 0);
+
+        kSPrintf(buffer, "|Addr: [0x%Q] Size: [0x%Q] Alloc Success", pAllocBuf, memSize);
+
+        // 자신의 ID를 Y좌표로 사용해 출력
+        kPrintStringXY(20, y, buffer);
+        kSleep(200);
+
+        kSPrintf(buffer, "|Addr: [0x%Q] Size: [0x%Q] Data Write...", pAllocBuf, memSize);
+        kPrintStringXY(20, y, buffer);
+        for(i = 0; i < memSize / 2; ++i) {
+            pAllocBuf[i] = kRand() & 0xFF;
+            pAllocBuf[i + memSize / 2] = pAllocBuf[i];
+        }
+        kSleep(200);
+
+        // 정상적으로 Write 되었는지 확인
+        kSPrintf(buffer, "|Addr: [0x%Q] Size: [0x%Q] Data Verify..", pAllocBuf, memSize);
+        kPrintStringXY(20, y, buffer);
+        for(i = 0; i < memSize / 2; ++i) {
+            if(pAllocBuf[i] != pAllocBuf[i + memSize / 2]) {
+                kPrintf("Task ID[0x%Q] Verify Failed\n", pTask->link.id);
+                kExitTask();
+            }
+        }
+        kFreeMemory(pAllocBuf);
+        kSleep(200);
+    }
+
+    kExitTask();
+}
+
+static void kTestRandAlloc(const char *pParmBuf) {
+    int i;
+
+    for(i = 0; i < 1000; ++i)
+        kCreateTask(TASK_PRIORITY_LOW | TASK_FLAGS_THREAD, 0, 0, (QWORD)kRandAllocTask);
 }

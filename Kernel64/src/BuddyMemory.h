@@ -49,7 +49,7 @@ static QWORD kCalcBuddyMemorySize(void);
 static int kCalcMetaBlockCount(QWORD memorySize);
 static int kAllocBuddyBlock(QWORD alignedSize);
 static QWORD kGetBuddyBlockSize(QWORD size);
-static int kGetBlockListIdxofMatchSize(QWORD alignedSize);
+static int kGetBlockListIdxOfMatchSize(QWORD alignedSize);
 static int kFindFreeBlockInBitmap(int blockListIdx);
 static void kSetFlagInBitmap(int blockListIdx, int offset, BYTE flag);
 static BOOL kFreeBuddyBlock(int blockListIdx, int blkOffset);

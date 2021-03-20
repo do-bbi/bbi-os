@@ -51,5 +51,8 @@ static void kTestMutex(const char *pParmBuf);
 static void kTestThread(const char *pParmBuf);
 static void kShowMatrix(const char *pParmBuf);
 static void kTestPIE(const char *pParmBuf);
+static void kShowBuddyMemInfo(const char *pParmBuf);
+static void kTestSeqAlloc(const char *pParmBuf);
+static void kTestRandAlloc(const char *pParmBuf);
 
 #endif  // __CONSOLESHELL_H__

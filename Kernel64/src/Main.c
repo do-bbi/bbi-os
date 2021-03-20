@@ -8,6 +8,7 @@
 #include "ConsoleShell.h"
 #include "Task.h"
 #include "PIT.h"
+#include "BuddyMemory.h"
 
 #define VIDEO_MEM_ADDR  (0xB8000)
 
@@ -67,6 +68,12 @@ void Main(void) {
     kPrintf("TCB Pool And Scheduler Initialize...........[    ]");
     kInitializeScheduler();
     
+    kSetCursor(PRINT_BLANK_POS, posY);
+    kPrintf("PASS\n"), posY++;
+
+    kPrintf("Buddy Memory Initialize.....................[    ]");
+    kInitializeBuddyMemory();
+
     kSetCursor(PRINT_BLANK_POS, posY);
     kPrintf("PASS\n"), posY++;
 
