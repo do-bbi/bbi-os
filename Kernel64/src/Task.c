@@ -3,6 +3,7 @@
 #include "Utility.h"
 #include "Sync.h"
 #include "ConsoleShell.h"
+#include "Console.h"
 
 // Structure for Scheduling
 static SCHEDULER        gScheduler;

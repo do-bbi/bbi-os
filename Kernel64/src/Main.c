@@ -71,6 +71,8 @@ void Main(void) {
     kSetCursor(PRINT_BLANK_POS, posY);
     kPrintf("PASS\n"), posY++;
 
+    /**************************************************************************/
+
     kPrintf("Buddy Memory Initialize.....................[    ]");
     kInitializeBuddyMemory();
 

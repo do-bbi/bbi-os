@@ -32,14 +32,14 @@ void kInitializeBuddyMemory(void) {
 
     // 비트맵 자료구조의 시작 주소 지정
     gBuddyMemory.pLevelBitmap = (BITMAP *)(BUDDY_MEMORY_START_ADDR + 
-                                           gBuddyMemory.minBlockCnt * sizeof(BYTE));
+                                    (gBuddyMemory.minBlockCnt * sizeof(BYTE)));
     
     // 실제 Bitmap 주소 지정
-    pCurPosBitmap = (BYTE *)(gBuddyMemory.pLevelBitmap + sizeof(BITMAP) * gBuddyMemory.maxLevelCnt);
+    pCurPosBitmap = ((BYTE *)gBuddyMemory.pLevelBitmap) + (sizeof(BITMAP) * gBuddyMemory.maxLevelCnt);
 
     // 블록 리스트 별로 Bitmap 생성
     // 초기 상태는 가장 큰 블록과 잔여 블록들로만 구성
-    for(j = 0; j < gBuddyMemory.minBlockCnt; ++j) {
+    for(j = 0; j < gBuddyMemory.maxLevelCnt; ++j) {
         gBuddyMemory.pLevelBitmap[j].pBitmap = pCurPosBitmap;
         gBuddyMemory.pLevelBitmap[j].existBitCnt = 0;
 
@@ -123,7 +123,7 @@ void *kAllocateMemory(QWORD size) {
         return NULL;
     
     // 여유 공간이 없다면 할당 불가
-    if(gBuddyMemory.startAddr + gBuddyMemory.usedSize + alignedSize > gBuddyMemory.endAddr)
+    if((gBuddyMemory.startAddr + gBuddyMemory.usedSize + alignedSize) > gBuddyMemory.endAddr)
         return NULL;
     
     // 버디 블록 할당 후, 할당한 블록이 속한 블록 리스트의 Index 반환
@@ -135,7 +135,7 @@ void *kAllocateMemory(QWORD size) {
 
     // 블록 크기를 저장하는 영역에 실제로 할당한 버디 블록이 속한 블록 리스트의 인덱스 저장
     // 메모리 해제할 때 이 블록 리스트의 인덱스 사용
-    relativeAddr = alignedSize + offset;
+    relativeAddr = alignedSize * offset;
     
     offset = relativeAddr / MIN_BUDDY_MEMORY_SIZE;
     gBuddyMemory.pAllocBlockListIdx[offset] = (BYTE)blockListIdx;
@@ -191,10 +191,10 @@ static int kAllocBuddyBlock(QWORD alignedSize) {
         // 검색 된 블록 리스트 ~ 검색 시작 블록 리스트까지 내려가면서
         // 왼쪽 블록은 Exist, 오른쪽 블록 Empty로 변경
         for(i = i - 1; i >= blockListIdx; --i) {
-            // Left -> Exist
+            // Left -> EMPTY
             kSetFlagInBitmap(i, offset << 1, BUDDY_MEMORY_EMPTY);
-            // Right -> Empty
-            kSetFlagInBitmap(i, (offset << 1) | 1, BUDDY_MEMORY_EMPTY);
+            // Right -> EXIST
+            kSetFlagInBitmap(i, (offset << 1) | 1, BUDDY_MEMORY_EXIST);
 
             // 왼쪽 블록으로 이동
             offset = offset << 1;
@@ -274,12 +274,14 @@ static void kSetFlagInBitmap(int blockListIdx, int offset, BYTE flag) {
 // 할당받은 메모리 해제
 BOOL kFreeMemory(void *pAddr) {
     QWORD relativeAddr;
-    int idx, offset;
+    int offset;
     QWORD blockSize;
     int blockListIdx;
 
-    if(pAddr == NULL)
+    if(pAddr == NULL) {
+        kPrintf("Free Buddy Block Failed (pAddr == NULL)\n");
         return FALSE;
+    }
     
     // 넘겨 받은 주소를 Block Pool을 기준으로 하는 주소로 변환하여
     // 할당했던 블록의 Size를 검색
@@ -287,8 +289,10 @@ BOOL kFreeMemory(void *pAddr) {
     offset = relativeAddr / MIN_BUDDY_MEMORY_SIZE;
 
     // 할당되어 있지 않은 경우 Free 실패
-    if(gBuddyMemory.pAllocBlockListIdx[offset] == 0xFF)
+    if(gBuddyMemory.pAllocBlockListIdx[offset] == 0xFF) {
+        kPrintf("Free Buddy Block Failed (BL == 0xFF)\n", offset);
         return FALSE;
+    }
     
     // 할당된 블록이 속한 블록 리스트의 인덱스가 저장된 곳을 초기화
     blockListIdx = (int)gBuddyMemory.pAllocBlockListIdx[offset];
@@ -303,6 +307,8 @@ BOOL kFreeMemory(void *pAddr) {
         gBuddyMemory.usedSize -= blockSize;
         return TRUE;
     }
+    else
+        kPrintf("Free Buddy Block Failed (%d, %d)\n", blockListIdx, offset);
 
     return FALSE;
 }

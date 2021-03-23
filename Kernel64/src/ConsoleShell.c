@@ -818,10 +818,11 @@ static void kTestSeqAlloc(const char *pParmBuf) {
 
     kPrintf("============== Buddy Memory Test ==============\n");
     pMemory = kGetBuddyMemoryManager();
+    kPrintf("pMemory=[0x%Q]\n", pMemory);
 
     for(i = 0; i < pMemory->maxLevelCnt; ++i) {
         kPrintf("Block List[%d] Test Start\n", i);
-        kPrintf("Alloc & Compare: ");
+        kPrintf("Alloc & Compare: \n");
 
         // 모든 블록을 할당 받아 값을 채운 후 검사
         for(j = 0; j < (pMemory->minBlockCnt >> i); ++j) {
@@ -842,10 +843,10 @@ static void kTestSeqAlloc(const char *pParmBuf) {
             }
 
             // 진행 과정을 .으로 표시
-            kPrintf(".");
+            // kPrintf(".");
         }
 
-        kPrintf("\nFree: ");
+        kPrintf("\nFree: \n");
         // 할당받은 블록을 모두 반환
         for(j = 0; j < (pMemory->minBlockCnt >> i); ++j) {
             if(kFreeMemory((void *)(pMemory->startAddr + (MIN_BUDDY_MEMORY_SIZE << i) * j)) == FALSE) {
@@ -853,7 +854,7 @@ static void kTestSeqAlloc(const char *pParmBuf) {
                 return;
             }
             // 진행 과정을 .으로 표시
-            kPrintf(".");
+            // kPrintf(".");
         }
         kPrintf("\n");
     }
@@ -868,7 +869,7 @@ static void kRandAllocTask(void) {
     int i, j, y;
 
     pTask = kGetRunningTask();
-    y = pTask->link.id % 15 + 9;
+    y = pTask->link.id % 15 + 2;
 
     for(j = 0; j < 10; ++j) {
         // 1 KB ~ 32 MB 사이에 할당
@@ -884,11 +885,11 @@ static void kRandAllocTask(void) {
         kSPrintf(buffer, "|Addr: [0x%Q] Size: [0x%Q] Alloc Success", pAllocBuf, memSize);
 
         // 자신의 ID를 Y좌표로 사용해 출력
-        kPrintStringXY(20, y, buffer);
+        kPrintStringXY(0, y, buffer);
         kSleep(200);
 
         kSPrintf(buffer, "|Addr: [0x%Q] Size: [0x%Q] Data Write...", pAllocBuf, memSize);
-        kPrintStringXY(20, y, buffer);
+        kPrintStringXY(0, y, buffer);
         for(i = 0; i < memSize / 2; ++i) {
             pAllocBuf[i] = kRand() & 0xFF;
             pAllocBuf[i + memSize / 2] = pAllocBuf[i];
@@ -897,10 +898,11 @@ static void kRandAllocTask(void) {
 
         // 정상적으로 Write 되었는지 확인
         kSPrintf(buffer, "|Addr: [0x%Q] Size: [0x%Q] Data Verify..", pAllocBuf, memSize);
-        kPrintStringXY(20, y, buffer);
+        kPrintStringXY(0, y, buffer);
         for(i = 0; i < memSize / 2; ++i) {
             if(pAllocBuf[i] != pAllocBuf[i + memSize / 2]) {
-                kPrintf("Task ID[0x%Q] Verify Failed\n", pTask->link.id);
+                kSetCursor(50, y);
+                kPrintf("TID[0x%Q] Verify Fail\n", pTask->link.id);
                 kExitTask();
             }
         }
@@ -914,6 +916,7 @@ static void kRandAllocTask(void) {
 static void kTestRandAlloc(const char *pParmBuf) {
     int i;
 
-    for(i = 0; i < 1000; ++i)
+    kClear(NULL);
+    for(i = 0; i < 100; ++i)
         kCreateTask(TASK_PRIORITY_LOW | TASK_FLAGS_THREAD, 0, 0, (QWORD)kRandAllocTask);
 }
