@@ -8,6 +8,7 @@
 #include "AssemblyUtil.h"
 #include "Sync.h"
 #include "BuddyMemory.h"
+#include "HDD.h"
 
 SHELLCOMMANDENTRY gCommandTable[] = {
     {"help",            "Show Help",                    kHelp},
@@ -24,7 +25,7 @@ SHELLCOMMANDENTRY gCommandTable[] = {
     {"changepriority",  "Change Task Priority, ex) "
                         "changepriority $ID $PR(0~4)",  kChangeTaskPriority},
     {"tasklist",        "Show Task List",               kShowTaskList},
-    {"killtask",        "End Task, ex) killtask $ID"
+    {"killtask",        "End Task, ex) killtask $ID "
                         "or -1(All)",                   kKillTask},
     {"cpuload",         "Show Processor Load",          kCPULoad},
     {"testmutex",       "Test Mutex Function",          kTestMutex},
@@ -33,7 +34,12 @@ SHELLCOMMANDENTRY gCommandTable[] = {
     {"testpie",         "Test PIE Calculation",         kTestPIE},
     {"buddymeminfo",    "Show Buddy Memory Info",       kShowBuddyMemInfo},
     {"testseqalloc",    "Test Sequential Alloc & Free", kTestSeqAlloc},
-    {"testrandalloc",   "Test Random Alloc & Free",     kTestRandAlloc}
+    {"testrandalloc",   "Test Random Alloc & Free",     kTestRandAlloc},
+    {"showhddinfo",     "Show HDD Info",                kShowHDDInfo},
+    {"readsector",      "Read HDD Sector, ex) "
+                        "readsector 0(LBA) 10(count)",  kReadSector},
+    {"writesector",     "Write HDD Sector, ex) "
+                        "writesector 0(LBA) 10(count)", kWriteSector}
 };
 
 void kStartConsoleShell(void) {
@@ -445,15 +451,15 @@ static void kTestTask2(void) {
 }
 
 static void kCreateTestTask(const char *pParamBuf) {
-    PARAMLIST params;
+    PARAMLIST list;
     char types[30];
     char counts[30];
     int i = 0;
 
     // Get Params
-    kInitializeParam(&params, pParamBuf);
-    kGetNextParameter(&params, types);
-    kGetNextParameter(&params, counts);
+    kInitializeParam(&list, pParamBuf);
+    kGetNextParameter(&list, types);
+    kGetNextParameter(&list, counts);
 
     switch (kAtoI(types, 10))
     {
@@ -919,4 +925,157 @@ static void kTestRandAlloc(const char *pParmBuf) {
     kClear(NULL);
     for(i = 0; i < 100; ++i)
         kCreateTask(TASK_PRIORITY_LOW | TASK_FLAGS_THREAD, 0, 0, (QWORD)kRandAllocTask);
+}
+
+static void kShowHDDInfo(const char *pParmBuf) {
+    HDD_INFO hddInfo;
+    char pBuf[100];
+
+    // Read HDD Info
+    if(kReadHDDInfo(TRUE, TRUE, &hddInfo) == FALSE) {
+        kPrintf("Read HDD Info Fail\n");
+        return;
+    }
+
+    kPrintf("========== Primary Master HDD info ==========\n");
+
+    // Model Number
+    kMemCpy(pBuf, hddInfo.modelNumber, sizeof(hddInfo.modelNumber));
+    pBuf[sizeof(hddInfo.modelNumber) - 1] = NULL;
+    kPrintf("Model Number:\t %s\n", pBuf);
+    
+    // Serial Number
+    kMemCpy(pBuf, hddInfo.serialNumber, sizeof(hddInfo.serialNumber));
+    pBuf[sizeof(hddInfo.serialNumber) - 1] = NULL;
+    kPrintf("Serial Number:\t %s\n", pBuf);
+
+    // 헤드, 실린더, 실린더 당 섹터 개수 출력
+    kPrintf("#Heads:\t\t %d\n", hddInfo.numberOfHead);
+    kPrintf("#Cylinders:\t %d\n", hddInfo.numberOfCylinder);
+    kPrintf("#Sectors:\t %d\n", hddInfo.numberOfSectorPerCylinder);
+
+    // 총 섹터 개수 출력
+    kPrintf("Total Sector:\t %d Sectors, %d MB\n", hddInfo.totalSectors, hddInfo.totalSectors / 2 / 1024);
+}
+
+static void kReadSector(const char *pParmBuf) {
+    PARAMLIST list;
+    char pLBA[50], pSectorCnt[50];
+    DWORD lba;
+    int sectorCnt;
+    char *pBuf;
+    int i, j;
+    BYTE data;
+    BOOL isExit = FALSE;
+
+    // 파라미터 리스트 초기화, LBA 어드레스, 섹터 수 추출
+    kInitializeParam(&list, pParmBuf);
+    if(kGetNextParameter(&list, pLBA) == 0 ||
+        kGetNextParameter(&list, pSectorCnt) == 0) {
+            kPrintf("ex) readsector 0(LBA) 10(count)\n");
+            return;
+        }
+    
+    lba = kAtoI(pLBA, 10);
+    sectorCnt = kAtoI(pSectorCnt, 10);
+
+    // 섹터 수 만큼 메모리를 할당 받아 READ 수행
+    pBuf == kAllocateMemory(sectorCnt * 512);
+    if(kReadHDDSector(TRUE, TRUE, lba, sectorCnt, pBuf) == sectorCnt) {
+        kPrintf("LBA [%d], [%d] Sector Read Success\n", lba, sectorCnt);
+        for(j = 0; j < sectorCnt; ++j) {
+            for(i = 0; i < 512; ++i) {
+                if(!(j == 0 && i == 0) && (i % 256 == 0)) {
+                    kPrintf("\nPress any key to continue... ('q' is exit) : ");
+                    if(kGetCh() == 'q') {
+                        isExit = TRUE;
+                        break;
+                    }
+                }
+
+                if(i % 16 == 0)
+                    kPrintf("\n[LBA: %d, offset: %d]\t| ", lba + j, i);
+                
+                // 모두 두 자리로 표시, 16보다 작은 경우 0 추가
+                data = pBuf[j * 512 + i] & 0xFF;
+                if(data < 16)
+                    kPrintf("0");
+                kPrintf("%x", data);
+            }
+
+            if(isExit)
+                break;
+        }
+        kPrintf("\n");
+    }
+    else
+        kPrintf("Read Fail\n");
+    
+    kFreeMemory(pBuf);
+}
+
+static void kWriteSector(const char *pParmBuf) {
+    PARAMLIST list;
+    char pLBA[50], pSectorCnt[50];
+    DWORD lba;
+    int sectorCnt;
+    char *pBuf;
+    int i, j;
+    BYTE data;
+    BOOL isExit = FALSE;
+    static DWORD writeCnt = 0;
+
+    // 파라미터 리스트 초기화, LBA 어드레스, 섹터 수 추출
+    kInitializeParam(&list, pParmBuf);
+    if(kGetNextParameter(&list, pLBA) == 0 ||
+        kGetNextParameter(&list, pSectorCnt) == 0) {
+            kPrintf("ex) writesector 0(LBA) 10(count)\n");
+            return;
+        }
+    
+    lba = kAtoI(pLBA, 10);
+    sectorCnt = kAtoI(pSectorCnt, 10);
+
+    writeCnt++;
+
+    // 버퍼를 할당 받아 데이터를 채움
+    pBuf == kAllocateMemory(sectorCnt * 512);
+    for(j = 0; j < sectorCnt; ++j) {
+        for(i = 0; i < 512; i += 8) {
+            *(DWORD *)&(pBuf[j * 512 + i]) = lba + j;
+            *(DWORD *)&(pBuf[j * 512 + i + 4]) = writeCnt;
+        }
+    }
+
+    if(kWriteHDDSector(TRUE, TRUE, lba, sectorCnt, pBuf) != sectorCnt) {
+        kPrintf("Write Fail\n");
+        return;
+    }
+    kPrintf("LBA [%d], [%d] Sector Write Success", lba, sectorCnt);
+
+    for(j = 0; j < sectorCnt; ++j) {
+        for(i = 0; i < 512; ++i) {
+            if(!(j == 0 && i == 0) && (i % 256 == 0)) {
+                kPrintf("\nPress any key to continue... ('q' is exit) : ");
+                if(kGetCh() == 'q') {
+                    isExit = TRUE;
+                    break;
+                }
+            }
+
+            if(i % 16 == 0)
+                kPrintf("\n[LBA: %d, offset: %d]\t| ", lba + j, i);
+            
+            // 모두 두 자리로 표시, 16보다 작은 경우 0 추가
+            data = pBuf[j * 512 + i] & 0xFF;
+            if(data < 16)
+                kPrintf("0");
+            kPrintf("%x", data);
+        }
+
+        if(isExit)
+            break;
+    }
+    kPrintf("\n");
+    kFreeMemory(pBuf);
 }

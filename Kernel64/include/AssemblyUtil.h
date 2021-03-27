@@ -5,7 +5,9 @@
 #include "Task.h"
 
 BYTE kInPortByte(WORD port);
-BYTE kOutPortByte(WORD port, BYTE data);
+void kOutPortByte(WORD port, BYTE data);
+WORD kInPortWord(WORD port);
+void kOutPortWord(WORD port, WORD data);
 void kLoadGDTR(QWORD pGDTR);
 void kLoadTR(WORD offset);
 void kLoadIDTR(QWORD pIDTR);

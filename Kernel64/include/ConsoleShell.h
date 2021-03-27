@@ -54,5 +54,8 @@ static void kTestPIE(const char *pParmBuf);
 static void kShowBuddyMemInfo(const char *pParmBuf);
 static void kTestSeqAlloc(const char *pParmBuf);
 static void kTestRandAlloc(const char *pParmBuf);
+static void kShowHDDInfo(const char *pParmBuf);
+static void kReadSector(const char *pParmBuf);
+static void kWriteSector(const char *pParmBuf);
 
 #endif  // __CONSOLESHELL_H__

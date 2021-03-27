@@ -9,6 +9,7 @@
 #include "Task.h"
 #include "PIT.h"
 #include "BuddyMemory.h"
+#include "HDD.h"
 
 #define VIDEO_MEM_ADDR  (0xB8000)
 
@@ -104,6 +105,17 @@ void Main(void) {
     
     kSetCursor(PRINT_BLANK_POS, posY);
     kPrintf("PASS\n"), posY++;
+    
+    /**************************************************************************/
+    kPrintf("HDD Initialize..............................[    ]");
+    if(kInitializeHDD()) {
+        kSetCursor(PRINT_BLANK_POS, posY);
+        kPrintf("PASS\n"), posY++;
+    }
+    else {
+        kSetCursor(PRINT_BLANK_POS, posY);
+        kPrintf("FAIL\n"), posY++;
+    }
 
     // Idle Task를 시스템 스레드로 생성
     kCreateTask(TASK_PRIORITY_LOWEST | TASK_FLAGS_THREAD | 

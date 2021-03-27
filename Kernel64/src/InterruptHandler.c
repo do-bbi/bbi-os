@@ -144,3 +144,30 @@ void kDeviceNotAvailableHandler(int vectorNumber) {
     // FPU를 사용한 Task ID를 현재 태스크로 변경
     kSetLastFPUUsedTaskID(pCurTask->link.id);
 }
+
+void kHDDHandler(int vectorNumber) {
+    TCB *pFPUTask, *pCurTask;
+    QWORD lastFPUTaskID;
+
+    /****************************************************/
+    // Print FPU Exception occurred
+    char msgBuffer[] = "[INT:  , ]";
+    static int gHDDInterruptCnt = 0;
+
+    // Print Exception Vector ↗ of screen
+    msgBuffer[5] = '0' + vectorNumber / 10;
+    msgBuffer[6] = '0' + vectorNumber % 10;
+    // Print Exception occurred
+    msgBuffer[8] = '0' + gHDDInterruptCnt;
+    gHDDInterruptCnt = (gHDDInterruptCnt + 1) % 10;
+
+    kPrintStringXY(70, 0, msgBuffer);
+
+    // Primary PATA 포트 인터럽트 발생으로 처리
+    if(vectorNumber - PIC_IRQ_VECTOR_OFFSET == 14)
+        kSetHDDInterruptFlag(TRUE, TRUE);
+    else // Secondary PATA 포트 인터럽트 발생으로 처리
+        kSetHDDInterruptFlag(FALSE, TRUE);
+
+    kSendEOI2PIC(vectorNumber - PIC_IRQ_VECTOR_OFFSET);
+}
