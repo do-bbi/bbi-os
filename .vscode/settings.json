@@ -18,6 +18,9 @@
         "rtc.h": "c",
         "pit.h": "c",
         "task.h": "c",
-        "sync.h": "c"
+        "sync.h": "c",
+        "buddymemory.h": "c",
+        "dynamicmemory.h": "c",
+        "hdd.h": "c"
     }
 }
