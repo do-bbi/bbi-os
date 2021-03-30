@@ -8,15 +8,17 @@
 // Macro, Function
 
 // BBI FS Signature
-#define FS_SIGN                     (0xBBF5C0DE)
+#define FS_SIGNATURE                (0xBBF5C0DE)
 // #Sectors per cluster
 #define FS_SECTORS_PER_CLUSTER      (8)
 // Mark for last cluster
 #define FS_LAST_CLUSTER             (0xFFFFFFFF)
 // Makr for free cluster
 #define FS_FREE_CLUSTER             (0x00)
+// Sizeof Sector
+#define FS_SECTOR_SIZE              (512)
 // Sizeof Cluster
-#define FS_CLUTSER_SIZE             (FS_SECTORS_PER_CLUSTER * 512)
+#define FS_CLUTSER_SIZE             (FS_SECTORS_PER_CLUSTER * FS_SECTOR_SIZE)
 // Maximum count of directories
 #define FS_MAX_DIR_ENTRY_COUNT      (FS_CLUTSER_SIZE / sizeof(DIR_ENTRY))
 
@@ -52,7 +54,7 @@ typedef struct kMBRStruct {
     BYTE bootcode[430];
 
     // FS Signature, 0xBB05C0DE
-    DWORD fsSign;
+    DWORD fsSignature;
     // #Sectors for reserved
     DWORD reservedSectorCnt;
     // #Sectors for Cluster Link Table
@@ -64,7 +66,7 @@ typedef struct kMBRStruct {
     PARTITION partionTable[4];
 
     // BootLoader Signature, 0x55, 0xAA
-    BYTE blSign[2];
+    BYTE blSignature[2];
 } MBR;
 
 // Directory Entry
