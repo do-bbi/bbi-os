@@ -44,7 +44,8 @@ Main.o: ../src/Main.c ../../Kernel32/include/Types.h \
  ../include/Keyboard.h ../include/Descriptor.h ../include/PIC.h \
  ../include/Console.h ../include/ConsoleShell.h ../include/Task.h \
  ../include/List.h ../include/PIT.h ../include/BuddyMemory.h \
- ../include/Task.h ../include/HDD.h ../include/Sync.h
+ ../include/Task.h ../include/HDD.h ../include/Sync.h ../include/FS.h \
+ ../include/HDD.h
 BuddyMemory.o: ../src/BuddyMemory.c ../include/BuddyMemory.h \
  ../../Kernel32/include/Types.h ../include/Task.h ../include/List.h \
  ../include/Sync.h ../include/Utility.h ../include/Task.h

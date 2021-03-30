@@ -10,6 +10,7 @@
 #include "PIT.h"
 #include "BuddyMemory.h"
 #include "HDD.h"
+#include "FS.h"
 
 #define VIDEO_MEM_ADDR  (0xB8000)
 
@@ -109,6 +110,17 @@ void Main(void) {
     /**************************************************************************/
     kPrintf("HDD Initialize..............................[    ]");
     if(kInitializeHDD()) {
+        kSetCursor(PRINT_BLANK_POS, posY);
+        kPrintf("PASS\n"), posY++;
+    }
+    else {
+        kSetCursor(PRINT_BLANK_POS, posY);
+        kPrintf("FAIL\n"), posY++;
+    }
+    
+    /**************************************************************************/
+    kPrintf("FS Initialize...............................[    ]");
+    if(kInitializeFS()) {
         kSetCursor(PRINT_BLANK_POS, posY);
         kPrintf("PASS\n"), posY++;
     }
