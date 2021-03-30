@@ -39,7 +39,8 @@ ConsoleShell.o: ../src/ConsoleShell.c ../include/ConsoleShell.h \
  ../include/Keyboard.h ../include/Utility.h ../include/PIT.h \
  ../include/RTC.h ../include/Task.h ../include/List.h \
  ../include/AssemblyUtil.h ../include/Task.h ../include/Sync.h \
- ../include/BuddyMemory.h ../include/HDD.h ../include/Sync.h
+ ../include/BuddyMemory.h ../include/HDD.h ../include/Sync.h \
+ ../include/FS.h ../include/HDD.h
 Main.o: ../src/Main.c ../../Kernel32/include/Types.h \
  ../include/Keyboard.h ../include/Descriptor.h ../include/PIC.h \
  ../include/Console.h ../include/ConsoleShell.h ../include/Task.h \

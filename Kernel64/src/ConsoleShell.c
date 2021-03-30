@@ -9,6 +9,7 @@
 #include "Sync.h"
 #include "BuddyMemory.h"
 #include "HDD.h"
+#include "FS.h"
 
 SHELLCOMMANDENTRY gCommandTable[] = {
     {"help",            "Show Help",                    kHelp},
@@ -39,7 +40,14 @@ SHELLCOMMANDENTRY gCommandTable[] = {
     {"readsector",      "Read HDD Sector, ex) "
                         "readsector 0(LBA) 10(count)",  kReadSector},
     {"writesector",     "Write HDD Sector, ex) "
-                        "writesector 0(LBA) 10(count)", kWriteSector}
+                        "writesector 0(LBA) 10(count)", kWriteSector},
+                        
+    {"mount",           "Mount HDD",                    kMountHDD},
+    {"format",          "Show HDD Info",                kFormatHDD},
+    {"fsinfo",          "Show File System Information", kShowFSInfo},
+    {"create",          "Create File ex) create a.txt", kCreateFileInRootDir},
+    {"delete",          "Delete File ex) delete a.txt", kDeleteFileInRootDir},
+    {"dir",             "Show Directory",               kShowRootDir},
 };
 
 void kStartConsoleShell(void) {
@@ -932,7 +940,7 @@ static void kShowHDDInfo(const char *pParmBuf) {
     char pBuf[100];
 
     // Read HDD Info
-    if(kReadHDDInfo(TRUE, TRUE, &hddInfo) == FALSE) {
+    if(kGetHDDInfo(&hddInfo) == FALSE) {
         kPrintf("Read HDD Info Fail\n");
         return;
     }
@@ -1078,4 +1086,184 @@ static void kWriteSector(const char *pParmBuf) {
     }
     kPrintf("\n");
     kFreeMemory(pBuf);
+}
+
+static void kMountHDD(const char *pParmBuf) {
+    if(kMount() == FALSE) {
+        kPrintf("Mount HDD Fail\n");
+        return;
+    }
+    kPrintf("Mount HDD Success\n");
+}
+
+static void kFormatHDD(const char *pParmBuf) {
+    if(kFormat() == FALSE) {
+        kPrintf("Format HDD Fail\n");
+        return;
+    }
+    kPrintf("Format HDD Success\n");
+}
+
+static void kShowFSInfo(const char *pParmBuf) {
+    FS_MANAGER manager;
+
+    kGetFSInfo(&manager);
+
+    kPrintf("================= File System Information =================\n");
+    kPrintf("Mounted:\t\t\t\t %s\n", manager.isMouted ? "Success" : "Failed");
+    kPrintf("Reserved Sector Count:\t\t\t %d #Sectors\n", manager.reservedSectorCnt);
+    kPrintf("Cluster Link Table Start Address:\t Sector %d\n", manager.clusterLinkAreaStartAddr);
+    kPrintf("Cluster Link Table Size:\t\t %d #Sectors\n", manager.clusterLinkAreaSize);
+    kPrintf("Data Area Start Address:\t\t Sector %d\n", manager.dataAreaStartAddr);
+    kPrintf("Total cluster Count:\t\t\t %d #Clusters\n", manager.totalClusterCnt);
+}
+
+static void kCreateFileInRootDir(const char *pParmBuf) {
+    PARAMLIST list;
+    char filename[50];
+    int i, len;
+    DWORD clusterIdx;
+    DIR_ENTRY entry;
+
+    kInitializeParam(&list, pParmBuf);
+    len = kGetNextParameter(&list, filename);
+    filename[len] = NULL;
+
+    if(len == 0 || (sizeof(entry.filename) - 1 < len)) {
+        kPrintf("Filename is too long or short, Failed\n");
+        return;
+    }
+
+    // Find free cluster
+    clusterIdx = kFindFreeCluster();
+    if(clusterIdx == FS_LAST_CLUSTER ||
+        kSetClusterLinkData(clusterIdx, FS_LAST_CLUSTER) == FALSE) {
+        kPrintf("Can not find free cluster, Failed\n");
+        return;
+    }
+
+    i = kFindFreeDirEntry();
+    if(i < 0) {
+        // Return allocated cluster, if failed
+        kSetClusterLinkData(clusterIdx, FS_FREE_CLUSTER);
+        kPrintf("Directory entry is Full\n");
+        return;
+    }
+
+    // Set directory entry
+    kMemCpy(entry.filename, filename, len + 1);
+    entry.startClusterIdx = clusterIdx;
+    entry.filesize = 0;
+
+    // Register directory entry
+    if(kSetDirEntryData(i, &entry) == FALSE) {
+        // Return allocated cluster, if failed
+        kSetClusterLinkData(clusterIdx, FS_FREE_CLUSTER);
+        kPrintf("Can not set Directory entry, Failed\n");
+        return;
+    }
+    kPrintf("Create File, Success\n");
+}
+
+static void kDeleteFileInRootDir(const char *pParmBuf) {
+    PARAMLIST list;
+    char filename[50];
+    int offset, len;
+    DIR_ENTRY entry;
+
+    kInitializeParam(&list, pParmBuf);
+    len = kGetNextParameter(&list, filename);
+    filename[len] = NULL;
+
+    if(len == 0 || (sizeof(entry.filename) - 1 < len)) {
+        kPrintf("Filename is too long or short, Failed\n");
+        return;
+    }
+
+    // Find directory entry by filename
+    offset = kFindDirEntry(filename, &entry);
+    if(offset < 0) {
+        kPrintf("File not found, Failed\n");
+        return;
+    }
+
+    // Free cluster & Return
+    if(kSetClusterLinkData(entry.startClusterIdx, FS_FREE_CLUSTER) == FALSE) {
+        kPrintf("Can not free cluster, Failed\n");
+        return;
+    }
+
+    // Initialize directory entry to all 0
+    // Set it to offset
+    kMemSet(&entry, 0, sizeof(entry));
+    if(kSetDirEntryData(offset, &entry) == FALSE) {
+        kPrintf("Can not update root directory, Failed\n");
+        return;
+    }
+    kPrintf("Delete File, Success\n");
+}
+
+static void kShowRootDir(const char *pParmBuf) {
+    BYTE *pClusterBuf;
+    int i, cnt, totalCnt;
+    DIR_ENTRY *pEntry;
+    char buf[400];
+    char tmpVal[50];
+    DWORD totalByte;
+
+    pClusterBuf = kAllocateMemory(FS_CLUTSER_SIZE);
+
+    // Read root directory
+    if(kReadCluster(0, pClusterBuf) == FALSE) {
+        kPrintf("Can not read root directory, Failed\n");
+        return;
+    }
+
+    // Calculate (file count), (totla file size)
+    pEntry = (DIR_ENTRY *)pClusterBuf;
+    totalCnt = 0;
+    totalByte = 0;
+
+    for(i = 0; i < FS_MAX_DIR_ENTRY_COUNT; ++i) {
+        if(pEntry[i].startClusterIdx == 0)
+            continue;
+        totalCnt++;
+        totalByte += pEntry[i].filesize;
+    }
+
+    // Print file contents
+    // pEntry = (DIR_ENTRY *)pClusterBuf;
+    cnt = 0;
+    for(i = 0; i < FS_MAX_DIR_ENTRY_COUNT; ++i) {
+        if(pEntry[i].startClusterIdx == 0)
+            continue;
+        // Initialize buffer to all ' '
+        // Set value to each position
+        kMemSet(buf, ' ', sizeof(buf) - 1);
+        buf[sizeof(buf) - 1] = NULL;
+
+        // Insert file name
+        kMemCpy(buf, pEntry[i].filename, kStrLen(pEntry[i].filename));
+        // Insert file size(length)
+        kSPrintf(tmpVal, "%d Bytes", pEntry[i].filesize);
+        kMemCpy(buf + 30, tmpVal, kStrLen(tmpVal));
+        // Insert file start cluster index
+        kSPrintf(tmpVal, "0x%X Cluster", pEntry[i].startClusterIdx);
+        kMemCpy(buf + 55, tmpVal, kStrLen(tmpVal) + 1);
+        kPrintf("\t%s\n", buf);
+
+        if(cnt && cnt % 20 == 0) {
+            kPrintf("Press any key to continue... ('q' is exit) : ");
+            if(kGetCh() == 'q') {
+                kPrintf("\n");
+                break;
+            }
+        }
+        cnt++;
+    }
+
+    // Print (file count), (totla file size)
+    kPrintf("\t Total file count: %d\t Total file size: %d Bytes\n", totalCnt, totalByte);
+
+    kFreeMemory(pClusterBuf);
 }

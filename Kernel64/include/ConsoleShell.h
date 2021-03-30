@@ -57,5 +57,11 @@ static void kTestRandAlloc(const char *pParmBuf);
 static void kShowHDDInfo(const char *pParmBuf);
 static void kReadSector(const char *pParmBuf);
 static void kWriteSector(const char *pParmBuf);
+static void kMountHDD(const char *pParmBuf);
+static void kFormatHDD(const char *pParmBuf);
+static void kShowFSInfo(const char *pParmBuf);
+static void kCreateFileInRootDir(const char *pParmBuf);
+static void kDeleteFileInRootDir(const char *pParmBuf);
+static void kShowRootDir(const char *pParmBuf);
 
 #endif  // __CONSOLESHELL_H__
