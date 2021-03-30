@@ -21,6 +21,7 @@
         "sync.h": "c",
         "buddymemory.h": "c",
         "dynamicmemory.h": "c",
-        "hdd.h": "c"
+        "hdd.h": "c",
+        "fs.h": "c"
     }
 }

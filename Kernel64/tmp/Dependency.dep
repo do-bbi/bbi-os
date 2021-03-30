@@ -1,8 +1,10 @@
-Task.o: ../src/Task.c ../include/Task.h ../../Kernel32/include/Types.h \
- ../include/List.h ../include/Descriptor.h ../include/Utility.h \
- ../include/Sync.h
-RTC.o: ../src/RTC.c ../include/RTC.h ../../Kernel32/include/Types.h \
- ../include/AssemblyUtil.h ../include/Task.h ../include/List.h
+FS.o: ../src/FS.c ../include/FS.h ../../Kernel32/include/Types.h \
+ ../include/Sync.h ../include/HDD.h ../include/HDD.h \
+ ../include/BuddyMemory.h ../include/Task.h ../include/List.h \
+ ../include/Utility.h
+HDD.o: ../src/HDD.c ../include/HDD.h ../../Kernel32/include/Types.h \
+ ../include/Sync.h ../include/AssemblyUtil.h ../include/Task.h \
+ ../include/List.h ../include/Utility.h ../include/Console.h
 Keyboard.o: ../src/Keyboard.c ../../Kernel32/include/Types.h \
  ../include/AssemblyUtil.h ../include/Task.h ../include/List.h \
  ../include/Keyboard.h ../include/Queue.h ../include/Sync.h
@@ -11,7 +13,7 @@ Sync.o: ../src/Sync.c ../include/Sync.h ../../Kernel32/include/Types.h \
  ../include/Utility.h ../include/Task.h ../include/List.h
 Utility.o: ../src/Utility.c ../include/Utility.h \
  ../../Kernel32/include/Types.h ../include/AssemblyUtil.h \
- ../include/Task.h ../include/List.h
+ ../include/Task.h ../include/List.h ../include/Console.h
 Console.o: ../src/Console.c ../include/Utility.h \
  ../../Kernel32/include/Types.h ../include/Console.h \
  ../include/Keyboard.h ../include/Task.h ../include/List.h
@@ -21,18 +23,28 @@ InterruptHandler.o: ../src/InterruptHandler.c \
  ../include/InterruptHandler.h ../../Kernel32/include/Types.h \
  ../include/PIC.h ../include/Keyboard.h ../include/Console.h \
  ../include/Utility.h ../include/Task.h ../include/List.h \
- ../include/Descriptor.h
+ ../include/Descriptor.h ../include/AssemblyUtil.h ../include/Task.h
 List.o: ../src/List.c ../include/List.h ../../Kernel32/include/Types.h
 Queue.o: ../src/Queue.c ../include/Queue.h ../../Kernel32/include/Types.h \
  ../include/Utility.h
+Task.o: ../src/Task.c ../include/Task.h ../../Kernel32/include/Types.h \
+ ../include/List.h ../include/Descriptor.h ../include/Utility.h \
+ ../include/Sync.h ../include/ConsoleShell.h ../include/Console.h
 PIT.o: ../src/PIT.c ../include/PIT.h ../../Kernel32/include/Types.h \
+ ../include/AssemblyUtil.h ../include/Task.h ../include/List.h
+RTC.o: ../src/RTC.c ../include/RTC.h ../../Kernel32/include/Types.h \
  ../include/AssemblyUtil.h ../include/Task.h ../include/List.h
 ConsoleShell.o: ../src/ConsoleShell.c ../include/ConsoleShell.h \
  ../../Kernel32/include/Types.h ../include/Console.h \
  ../include/Keyboard.h ../include/Utility.h ../include/PIT.h \
  ../include/RTC.h ../include/Task.h ../include/List.h \
- ../include/AssemblyUtil.h ../include/Task.h ../include/Sync.h
+ ../include/AssemblyUtil.h ../include/Task.h ../include/Sync.h \
+ ../include/BuddyMemory.h ../include/HDD.h ../include/Sync.h
 Main.o: ../src/Main.c ../../Kernel32/include/Types.h \
  ../include/Keyboard.h ../include/Descriptor.h ../include/PIC.h \
  ../include/Console.h ../include/ConsoleShell.h ../include/Task.h \
- ../include/List.h ../include/PIT.h
+ ../include/List.h ../include/PIT.h ../include/BuddyMemory.h \
+ ../include/Task.h ../include/HDD.h ../include/Sync.h
+BuddyMemory.o: ../src/BuddyMemory.c ../include/BuddyMemory.h \
+ ../../Kernel32/include/Types.h ../include/Task.h ../include/List.h \
+ ../include/Sync.h ../include/Utility.h ../include/Task.h

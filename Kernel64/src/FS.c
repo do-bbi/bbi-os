@@ -234,10 +234,91 @@ BOOL kGetClusterLinkData(DWORD clusterIdx, DWORD *pData) {
     return TRUE;
 }
 
-int kFindFreeDirEntry(void);
-BOOL kSetDirEntryData(int idx, DIR_ENTRY *pEntry);
-BOOL kGetDirEntryData(int idx, DIR_ENTRY *pEntry);
-int kFindDirEntry(const char *pFilename, DIR_ENTRY *pEntry);
+int kFindFreeDirEntry(void) {
+    DIR_ENTRY *pEntry;
+    int i;
+
+    if(gFSManager.isMouted == FALSE)
+        return -1;
+    
+    if(kReadCluster(0, gTmpBuf) == FALSE)
+        return -1;
+    
+    pEntry = (DIR_ENTRY *)gTmpBuf;
+    for(i = 0; i < FS_MAX_DIR_ENTRY_COUNT; ++i) {
+        if(pEntry[i].startClusterIdx == 0)
+            return i;
+    }
+
+    return -1;
+}
+
+BOOL kSetDirEntryData(int idx, DIR_ENTRY *pEntry) {
+    DIR_ENTRY *pRootEntry;
+
+    if(gFSManager.isMouted == FALSE || idx < 0 || FS_MAX_DIR_ENTRY_COUNT <= idx)
+        return FALSE;
+    
+    // Read Root Directory
+    if(kReadCluster(0, gTmpBuf) == FALSE)
+        return FALSE;
+
+    // Update Directory Entry
+    pRootEntry = (DIR_ENTRY *)gTmpBuf;
+    kMemCpy(pRootEntry + idx, pEntry, sizeof(DIR_ENTRY));
+
+    // Write Root Directory
+    if(kWriteCluster(0, gTmpBuf) == FALSE)
+        return FALSE;
+    
+    return TRUE;
+}
+
+BOOL kGetDirEntryData(int idx, DIR_ENTRY *pEntry) {
+    DIR_ENTRY *pRootEntry;
+
+    if(gFSManager.isMouted == FALSE || idx < 0 || FS_MAX_DIR_ENTRY_COUNT <= idx)
+        return FALSE;
+    
+    // Read Root Directory
+    if(kReadCluster(0, gTmpBuf) == FALSE)
+        return FALSE;
+
+    // Update Directory Entry
+    pRootEntry = (DIR_ENTRY *)gTmpBuf;
+    kMemCpy(pEntry, pRootEntry + idx, sizeof(DIR_ENTRY));
+    return TRUE;
+}
+
+int kFindDirEntry(const char *pFilename, DIR_ENTRY *pEntry) {
+    DIR_ENTRY *pRootEntry;
+    int i, len;
+
+    if(gFSManager.isMouted == FALSE)
+        return -1;
+    
+    // Read Root Directory
+    if(kReadCluster(0, gTmpBuf) == FALSE)
+        return FALSE;
+
+    len = kStrLen(pFilename);
+
+    pRootEntry = (DIR_ENTRY *)gTmpBuf;
+    for(i = 0; i < FS_MAX_DIR_ENTRY_COUNT; ++i) {
+        if(kMemCmp(pRootEntry[i].filename, pFilename, len) == 0) {
+            kMemCpy(pEntry, pRootEntry + i, sizeof(DIR_ENTRY));
+            return i;
+        }
+    }
+
+    return -1;
+
+    // Write Root Directory
+    if(kWriteCluster(0, gTmpBuf) == FALSE)
+        return FALSE;
+    
+    return TRUE;
+}
 
 void kGetFSInfo(FS_MANAGER *pManager) {
     kMemCpy(pManager, &gFSManager, sizeof(gFSManager));
