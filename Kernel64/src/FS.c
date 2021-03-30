@@ -143,13 +143,13 @@ BOOL kWriteClusterLinkTable(DWORD offset, BYTE *pBuf) {
 }
 BOOL kReadCluster(DWORD offset, BYTE *pBuf) {
     return pFReadHDDSector(TRUE, TRUE, 
-            (offset * FS_SECTORS_PER_CLUSTER) + gFSManager.clusterLinkAreaStartAddr, 
+            (offset * FS_SECTORS_PER_CLUSTER) + gFSManager.dataAreaStartAddr, 
             FS_SECTORS_PER_CLUSTER, pBuf);
 }
 
 BOOL kWriteCluster(DWORD offset, BYTE *pBuf) {
     return pFWriteHDDSector(TRUE, TRUE, 
-            (offset * FS_SECTORS_PER_CLUSTER) + gFSManager.clusterLinkAreaStartAddr, 
+            (offset * FS_SECTORS_PER_CLUSTER) + gFSManager.dataAreaStartAddr, 
             FS_SECTORS_PER_CLUSTER, pBuf);
 }
 
