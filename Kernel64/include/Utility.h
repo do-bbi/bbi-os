@@ -4,6 +4,10 @@
 #include <stdarg.h>
 #include "Types.h"
 
+// Macro
+#define MIN(x, y)   (((x) < (y)) ? (x) : (y))
+#define MAX(x, y)   (((x) > (y)) ? (x) : (y))
+
 extern volatile QWORD gTickCount;
 
 void kMemSet(void *pDst, BYTE data, int size);
