@@ -1,6 +1,6 @@
 FS.o: ../src/FS.c ../include/FS.h ../../Kernel32/include/Types.h \
- ../include/Sync.h ../include/HDD.h ../include/HDD.h \
- ../include/BuddyMemory.h ../include/Task.h ../include/List.h \
+ ../include/Task.h ../include/List.h ../include/Sync.h ../include/HDD.h \
+ ../include/HDD.h ../include/BuddyMemory.h ../include/Task.h \
  ../include/Utility.h
 HDD.o: ../src/HDD.c ../include/HDD.h ../../Kernel32/include/Types.h \
  ../include/Sync.h ../include/AssemblyUtil.h ../include/Task.h \

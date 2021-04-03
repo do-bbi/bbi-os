@@ -1,6 +1,7 @@
 #include "FS.h"
 #include "HDD.h"
 #include "BuddyMemory.h"
+#include "Task.h"
 #include "Utility.h"
 
 static FS_MANAGER gFSManager;
@@ -22,7 +23,21 @@ BOOL kInitializeFS(void) {
     pFReadHDDSector     = kReadHDDSector;
     pFWriteHDDSector    = kWriteHDDSector;
 
-    return kMount();
+    if(kMount() == FALSE)
+        return FALSE;
+
+    // Allocate memory for handler
+    gFSManager.pHandlePool = (FILE *)kAllocateMemory(FS_HANDLE_MAX_COUNT * sizeof(FILE));
+
+    // 메모리 할당 실패 시 하드디스크 인식 실패로 설정
+    if(gFSManager.pHandlePool == NULL) {
+        gFSManager.isMouted = FALSE;
+        return FALSE;
+    }
+
+    kMemSet(gFSManager.pHandlePool, 0, FS_HANDLE_MAX_COUNT * sizeof(FILE));
+
+    return TRUE;
 }
 
 BOOL kFormat(void) {
@@ -132,28 +147,28 @@ BOOL kGetHDDInfo(HDD_INFO *pInfo) {
     return result;
 }
 
-BOOL kReadClusterLinkTable(DWORD offset, BYTE *pBuf) {
+static BOOL kReadClusterLinkTable(DWORD offset, BYTE *pBuf) {
     return pFReadHDDSector(TRUE, TRUE, 
             offset + gFSManager.clusterLinkAreaStartAddr, 1, pBuf);
 }
 
-BOOL kWriteClusterLinkTable(DWORD offset, BYTE *pBuf) {
+static BOOL kWriteClusterLinkTable(DWORD offset, BYTE *pBuf) {
     return pFWriteHDDSector(TRUE, TRUE, 
             offset + gFSManager.clusterLinkAreaStartAddr, 1, pBuf);
 }
-BOOL kReadCluster(DWORD offset, BYTE *pBuf) {
+static BOOL kReadCluster(DWORD offset, BYTE *pBuf) {
     return pFReadHDDSector(TRUE, TRUE, 
             (offset * FS_SECTORS_PER_CLUSTER) + gFSManager.dataAreaStartAddr, 
             FS_SECTORS_PER_CLUSTER, pBuf);
 }
 
-BOOL kWriteCluster(DWORD offset, BYTE *pBuf) {
+static BOOL kWriteCluster(DWORD offset, BYTE *pBuf) {
     return pFWriteHDDSector(TRUE, TRUE, 
             (offset * FS_SECTORS_PER_CLUSTER) + gFSManager.dataAreaStartAddr, 
             FS_SECTORS_PER_CLUSTER, pBuf);
 }
 
-DWORD kFindFreeCluster(void) {
+static DWORD kFindFreeCluster(void) {
     DWORD linkCntInSector;
     DWORD lastSectorOffset, curSectorOffset;
     DWORD i, j;
@@ -193,7 +208,7 @@ DWORD kFindFreeCluster(void) {
     return FS_LAST_CLUSTER;
 }
 
-BOOL kSetClusterLinkData(DWORD clusterIdx, DWORD data) {
+static BOOL kSetClusterLinkData(DWORD clusterIdx, DWORD data) {
     DWORD sectorOffset;
 
     if(gFSManager.isMouted == FALSE)
@@ -213,7 +228,7 @@ BOOL kSetClusterLinkData(DWORD clusterIdx, DWORD data) {
     
     return TRUE;
 }
-BOOL kGetClusterLinkData(DWORD clusterIdx, DWORD *pData) {
+static BOOL kGetClusterLinkData(DWORD clusterIdx, DWORD *pData) {
     DWORD sectorOffset;
 
     if(gFSManager.isMouted == FALSE)
@@ -234,7 +249,7 @@ BOOL kGetClusterLinkData(DWORD clusterIdx, DWORD *pData) {
     return TRUE;
 }
 
-int kFindFreeDirEntry(void) {
+static int kFindFreeDirEntry(void) {
     DIR_ENTRY *pEntry;
     int i;
 
@@ -253,7 +268,7 @@ int kFindFreeDirEntry(void) {
     return -1;
 }
 
-BOOL kSetDirEntryData(int idx, DIR_ENTRY *pEntry) {
+static BOOL kSetDirEntryData(int idx, DIR_ENTRY *pEntry) {
     DIR_ENTRY *pRootEntry;
 
     if(gFSManager.isMouted == FALSE || idx < 0 || FS_MAX_DIR_ENTRY_COUNT <= idx)
@@ -274,7 +289,7 @@ BOOL kSetDirEntryData(int idx, DIR_ENTRY *pEntry) {
     return TRUE;
 }
 
-BOOL kGetDirEntryData(int idx, DIR_ENTRY *pEntry) {
+static BOOL kGetDirEntryData(int idx, DIR_ENTRY *pEntry) {
     DIR_ENTRY *pRootEntry;
 
     if(gFSManager.isMouted == FALSE || idx < 0 || FS_MAX_DIR_ENTRY_COUNT <= idx)
@@ -290,7 +305,7 @@ BOOL kGetDirEntryData(int idx, DIR_ENTRY *pEntry) {
     return TRUE;
 }
 
-int kFindDirEntry(const char *pFilename, DIR_ENTRY *pEntry) {
+static int kFindDirEntry(const char *pFilename, DIR_ENTRY *pEntry) {
     DIR_ENTRY *pRootEntry;
     int i, len;
 
@@ -322,4 +337,560 @@ int kFindDirEntry(const char *pFilename, DIR_ENTRY *pEntry) {
 
 void kGetFSInfo(FS_MANAGER *pManager) {
     kMemCpy(pManager, &gFSManager, sizeof(gFSManager));
+}
+
+FILE* kOpenFile(const char *filename, const char *pMode) {
+    DIR_ENTRY entry;
+    int len, dirEntryOffset;
+    DWORD secondCluster;
+
+    FILE *pFile;
+
+    len = kStrLen(filename);
+    if(len == 0 || sizeof(entry.filename) <= len)
+        return NULL;
+
+    kLock(&gFSManager.mutex);
+
+    dirEntryOffset = kFindDirEntry(filename, &entry);
+    if(dirEntryOffset == -1) {
+        // Read failed, cause file isn't exist
+        if(pMode[0] == 'r') {
+            kUnlock(&gFSManager.mutex);
+            return NULL;
+        }
+
+        if(kCreateFile(filename, &entry, &dirEntryOffset) == FALSE) {
+            kUnlock(&gFSManager.mutex);
+            return NULL;
+        }
+    }
+    else if(pMode[0] == 'w') {
+       if(kGetClusterLinkData(entry.startClusterIdx, &secondCluster) == FALSE) {
+            kUnlock(&gFSManager.mutex);
+            return NULL;
+       }
+
+       if(kSetClusterLinkData(entry.startClusterIdx, FS_LAST_CLUSTER) == FALSE) {
+           kUnlock(&gFSManager.mutex);
+           return NULL;
+       }
+
+       if(kFreeClusterUntilEnd(secondCluster) == FALSE) {
+           kUnlock(&gFSManager.mutex);
+           return NULL;
+       }
+
+       entry.filesize = 0;
+       if(kSetDirEntryData(dirEntryOffset, &entry) == FALSE) {
+           kUnlock(&gFSManager.mutex);
+           return NULL;
+       }
+    }
+
+    pFile = kAllocFileDirHandle();
+    if(pFile == NULL) {
+        kUnlock(&gFSManager.mutex);
+        return NULL;
+    }
+
+    pFile->type                         = FS_TYPE_FILE;
+    pFile->fileHandle.dirEntryOffset    = dirEntryOffset;
+    pFile->fileHandle.filesize          = entry.filesize;
+    pFile->fileHandle.startClusterIdx   = entry.startClusterIdx;
+    pFile->fileHandle.curClusterIdx     = entry.startClusterIdx;
+    pFile->fileHandle.prevClusterIdx    = entry.startClusterIdx;
+    pFile->fileHandle.curOffset         = 0;
+
+    // 추가 옵션('a')으로 열은 경우, 파일 끝으로 이동
+    if(pMode[0] == 'a')
+        kSeekFile(pFile, 0, FS_SEEK_END);
+    
+    kUnlock(&gFSManager.mutex);
+    return pFile;
+}
+
+DWORD kReadFile(void *pBuf, DWORD size, DWORD cnt, FILE *pFile) {
+    DWORD totalCnt;
+    DWORD readCnt;
+    DWORD offsetInCluster;
+    DWORD copySize;
+    FILE_HANDLE *pFileHandle;
+    DWORD nextClusterIdx;
+
+    if(pFile == NULL || pFile->type != FS_TYPE_FILE)
+        return 0;
+    pFileHandle = &(pFile->fileHandle);
+
+    // if offset if end of file OR last cluster, then finish
+    if(pFileHandle->curOffset == pFileHandle->filesize || pFileHandle->curClusterIdx == FS_LAST_CLUSTER)
+        return 0;
+    
+    totalCnt = MIN(size * cnt, pFileHandle->filesize - pFileHandle->curOffset);
+
+    kLock(&gFSManager.mutex);
+
+    readCnt = 0;
+    while(readCnt < totalCnt) {
+        if(kReadCluster(pFileHandle->curClusterIdx, gTmpBuf) == FALSE)
+            break;
+        
+        offsetInCluster = pFileHandle->curOffset % FS_CLUTSER_SIZE;
+
+        copySize = MIN(FS_CLUTSER_SIZE - offsetInCluster, totalCnt - readCnt);
+        kMemCpy((char *)pBuf + readCnt, gTmpBuf + offsetInCluster, copySize);
+
+        readCnt += copySize;
+        pFileHandle->curOffset += copySize;
+        
+        // Move to next cluster, if reading curret cluster is finished
+        if(pFileHandle->curOffset % FS_CLUTSER_SIZE == 0) {
+            if(kGetClusterLinkData(pFileHandle->curClusterIdx, &nextClusterIdx) == FALSE)
+                break;
+            
+            pFileHandle->prevClusterIdx     = pFileHandle->curClusterIdx;
+            pFileHandle->curClusterIdx      = nextClusterIdx;
+        }
+    }
+
+    kUnlock(&gFSManager.mutex);
+
+    return readCnt;
+}
+
+DWORD kWriteFile(const void *pBuf, DWORD size, DWORD cnt, FILE *pFile) {
+    DWORD writeCnt;
+    DWORD totalCnt;
+    DWORD offsetInCluster;
+    DWORD copySize;
+    DWORD allocClusterIdx;
+    DWORD nextClusterIdx;
+
+    FILE_HANDLE *pFileHandle;
+
+    if(pFile == NULL || pFile->type != FS_TYPE_FILE)
+        return 0;
+    
+    pFileHandle = &(pFile->fileHandle);
+
+    totalCnt = size * cnt;
+
+    kLock(&gFSManager.mutex);
+
+    writeCnt = 0;
+    while(writeCnt < totalCnt) {
+        if(pFileHandle->curClusterIdx == FS_LAST_CLUSTER) {
+            // Find free cluster
+            allocClusterIdx = kFindFreeCluster();
+            if(allocClusterIdx == FS_LAST_CLUSTER)
+                break;
+            
+            // Set the found cluster to last cluster
+            if(kSetClusterLinkData(allocClusterIdx, FS_LAST_CLUSTER) == FALSE)
+                break;
+            
+            if(kSetClusterLinkData(pFileHandle->prevClusterIdx, allocClusterIdx) == FALSE) {
+                // Return the found cluster, if failed
+                kSetClusterLinkData(allocClusterIdx, FS_FREE_CLUSTER);
+                break;
+            }
+
+            // Update current cluster to the found cluster
+            pFileHandle->curClusterIdx = allocClusterIdx;
+
+            // ???
+            kMemSet(gTmpBuf, 0, FS_CLUTSER_SIZE);
+        }
+        else if((pFileHandle->curOffset % FS_CLUTSER_SIZE) != 0 ||
+                totalCnt - writeCnt < FS_CLUTSER_SIZE) {
+            if(kReadCluster(pFileHandle->curClusterIdx, gTmpBuf) == FALSE)
+                break;
+        }
+
+        offsetInCluster = pFileHandle->curOffset % FS_CLUTSER_SIZE;
+
+        copySize = MIN(FS_CLUTSER_SIZE - offsetInCluster, totalCnt - writeCnt);
+
+        kMemCpy(gTmpBuf + offsetInCluster, (char *)pBuf + writeCnt, copySize);
+
+        if(kWriteCluster(pFileHandle->curClusterIdx, gTmpBuf) == FALSE)
+            break;
+        
+        writeCnt += copySize;
+        pFileHandle->curOffset += copySize;
+
+        if(pFileHandle->curOffset % FS_CLUTSER_SIZE == 0)  {
+            if(kGetClusterLinkData(pFileHandle->curClusterIdx, &nextClusterIdx) == FALSE)
+                break;
+            
+            pFileHandle->prevClusterIdx = pFileHandle->curClusterIdx;
+            pFileHandle->curClusterIdx = nextClusterIdx;
+        }
+    }
+
+    if(pFileHandle->filesize < pFileHandle->curOffset) {
+        pFileHandle->filesize = pFileHandle->curOffset;
+        kUpdateDirEntry(pFileHandle);
+    }
+
+    kUnlock(&gFSManager.mutex);
+
+    return writeCnt;
+}
+
+int kSeekFile(FILE *pFile, int offset, int origin) {
+    DWORD dstOffset;
+    DWORD curClusterOffset;
+    DWORD lastClusterOffset;
+    DWORD dstClusterOffset;
+    DWORD moveCnt;
+
+    DWORD i;
+    DWORD startClusterIdx;
+    DWORD prevClusterIdx;
+    DWORD curClusterIdx;
+
+    FILE_HANDLE *pFileHandle;
+
+    if(pFile == NULL || pFile->type != FS_TYPE_FILE)
+        return 0;
+    
+    pFileHandle = &(pFile->fileHandle);
+
+    // Calculate destination offset by using origin + offset
+    switch (origin)
+    {
+    case FS_SEEK_SET:
+        dstOffset = offset < 0 ? 0 : offset;
+        break;
+    
+    case FS_SEEK_CUR:
+        if(offset < 0 && pFileHandle->curOffset + offset < 0)
+            dstOffset = 0;
+        else
+            dstOffset = pFileHandle->curOffset + offset;
+        break;
+    
+    case FS_SEEK_END:
+        if(offset < 0 && pFileHandle->filesize + offset < 0)
+            dstOffset = 0;
+        else
+            dstOffset = pFileHandle->filesize + offset;
+        break;
+    }
+
+    lastClusterOffset   = pFileHandle->filesize / FS_CLUTSER_SIZE;
+    dstClusterOffset    = dstOffset / FS_CLUTSER_SIZE;
+    curClusterOffset    = pFileHandle->curOffset / FS_CLUTSER_SIZE;
+
+    // Calculate moveCnt, startClusterIdx 
+    if(lastClusterOffset < dstClusterOffset) {
+        moveCnt = lastClusterOffset - curClusterOffset;
+        startClusterIdx = pFileHandle->curClusterIdx;
+    }
+    else if(curClusterOffset <= dstClusterOffset) {
+        moveCnt = dstClusterOffset - curClusterOffset;
+        startClusterIdx = pFileHandle->curClusterIdx;
+    }
+    else {
+        moveCnt = dstClusterOffset;
+        startClusterIdx = pFileHandle->startClusterIdx;
+    }
+
+    kLock(&gFSManager.mutex);
+
+    curClusterIdx = startClusterIdx;
+    for(i = 0; i < moveCnt; ++i) {
+        prevClusterIdx = curClusterIdx;
+
+        if(kGetClusterLinkData(prevClusterIdx, &curClusterIdx) == FALSE) {
+            kUnlock(&gFSManager.mutex);
+            return -1;
+        }
+    }
+    
+    pFileHandle->curOffset = dstOffset;
+
+    kUnlock(&gFSManager.mutex);
+
+    return 0;
+}
+
+int kCloseFile(FILE *pFile) {
+    if(pFile == NULL || pFile->type != FS_TYPE_FILE)
+        return -1;
+    
+    kFreeFileDirectoryHandle(pFile);
+
+    return 0;
+}
+
+int kRemoveFile(const char *filename) {
+    DIR_ENTRY entry;
+    int dirEntryOffset;
+    int len;
+
+    len = kStrLen(filename);
+    if(len == 0 || sizeof(entry.filename) <= len)
+        return -1;
+
+    kLock(&gFSManager.mutex);
+
+    // Check file is exist
+    dirEntryOffset = kFindDirEntry(filename, &entry);
+    if(dirEntryOffset == -1) {
+        kUnlock(&gFSManager.mutex);
+        return -1;
+    }
+    
+    if(kIsFileOpened(&entry)) {
+        kUnlock(&gFSManager.mutex);
+        return -1;
+    }
+
+    if(kFreeClusterUntilEnd(entry.startClusterIdx) == FALSE) {
+        kUnlock(&gFSManager.mutex);
+        return -1;
+    }
+
+    // Set directory entry as free
+    kMemSet(&entry, 0, sizeof(entry));
+    if(kSetDirEntryData(dirEntryOffset, &entry) == FALSE) {
+        kUnlock(&gFSManager.mutex);
+        return -1;
+    }
+
+    kUnlock(&gFSManager.mutex);
+
+    return 0;
+}
+
+DIR *kOpenDir(const char *dirname) {
+    DIR *pDir;
+    DIR_ENTRY *pDirBuf;
+
+    kLock(&gFSManager.mutex);
+    
+    pDir = kAllocFileDirHandle();
+    if(pDir == NULL) {
+        kUnlock(&gFSManager.mutex);
+        return NULL;
+    }
+
+    // 루트 디렉토리 밖에 존재 하지 않으므로, 이름을 무시하고 핸들만 받아 반환
+    pDirBuf = (DIR_ENTRY *)kAllocateMemory(FS_CLUTSER_SIZE);
+    if(pDirBuf == NULL) {
+        kFreeFileDirectoryHandle(pDir);
+        kUnlock(&gFSManager.mutex);
+        return NULL;
+    }
+
+    if(kReadCluster(0, (BYTE *)pDirBuf) == FALSE) {
+        // Return handles, memory, if failed
+        kFreeFileDirectoryHandle(pDir);
+        kFreeMemory(pDirBuf);
+
+        kUnlock(&gFSManager.mutex);
+        return NULL;
+    }
+
+    pDir->type                  = FS_TYPE_DIR;
+    pDir->dirHandle.curOffset   = 0;
+    pDir->dirHandle.pDirBuf     = pDirBuf;
+
+    kUnlock(&gFSManager.mutex);
+
+    return pDir;
+}
+
+DIR_ENTRY *kReadDir(DIR *pDir) {
+    DIR_HANDLE *pDirHandle;
+    DIR_ENTRY *pEntry;
+    
+    if(pDir == NULL || pDir->type != FS_TYPE_DIR)
+        return NULL;
+    
+    pDirHandle = &(pDir->dirHandle);
+
+    if(pDirHandle->curOffset < 0 || FS_MAX_DIR_ENTRY_COUNT <= pDirHandle->curOffset)
+        return NULL;
+
+    kLock(&gFSManager.mutex);
+
+    pEntry = pDirHandle->pDirBuf;
+    while(pDirHandle->curOffset < FS_MAX_DIR_ENTRY_COUNT) {
+        // 파일을 찾았다면 반환
+        if(pEntry[pDirHandle->curOffset].startClusterIdx != 0) {
+            kUnlock(&gFSManager.mutex);
+            return &(pEntry[pDirHandle->curOffset++]);
+        }
+
+        pDirHandle->curOffset++;
+    }
+
+    kUnlock(&gFSManager.mutex);
+    return NULL;
+}
+
+void *kRewindDir(DIR *pDir) {
+    DIR_HANDLE *pDirHandle;
+
+    if(pDir == NULL || pDir->type != FS_TYPE_DIR)
+        return;
+    pDirHandle = &(pDir->dirHandle);
+
+    kLock(&gFSManager.mutex);
+
+    pDirHandle->curOffset = 0;
+
+    kUnlock(&gFSManager.mutex);
+}
+
+int kCloseDir(DIR *pDir) {
+    DIR_HANDLE *pDirHandle;
+
+    if(pDir == NULL || pDir->type != FS_TYPE_DIR)
+        return -1;
+    pDirHandle = &(pDir->dirHandle);
+    
+    kLock(&gFSManager.mutex);
+
+    kFreeMemory(pDirHandle->pDirBuf);
+    kFreeFileDirectoryHandle(pDir);
+
+    kUnlock(&gFSManager.mutex);
+
+    return 0;
+}
+
+DIR *kWriteZero(FILE *pFile, DWORD cnt) {
+    BYTE *pBuf;
+    DWORD remainCnt;
+    DWORD writeCnt;
+
+    if(pFile == NULL)
+        return FALSE;
+    
+    pBuf = (BYTE *)kAllocateMemory(FS_CLUTSER_SIZE);
+    if(pBuf == NULL)
+        return FALSE;
+    
+    kMemSet(pBuf, 0, FS_CLUTSER_SIZE);
+    remainCnt = cnt;
+
+    while(0 < remainCnt) {
+        writeCnt = MIN(remainCnt , FS_CLUTSER_SIZE);
+        if(kWriteFile(pBuf, 1, writeCnt, pFile) != writeCnt) {
+            kFreeMemory(pBuf);
+            return FALSE;
+        }
+        remainCnt -= writeCnt;
+    }
+
+    kFreeMemory(pBuf);
+    return TRUE;
+}
+
+DIR *kIsFileOpened(const DIR_ENTRY *pEntry) {
+    int i;
+    FILE *pFile;
+
+    pFile = gFSManager.pHandlePool;
+    for(i = 0; i < FS_HANDLE_MAX_COUNT; ++i) {
+        if(pFile[i].type == FS_TYPE_FILE && 
+            pFile[i].fileHandle.startClusterIdx == pEntry->startClusterIdx)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static void *kAllocFileDirHandle(void) {
+    int i;
+    FILE *pFile;
+
+    // Find free handle
+
+    pFile = gFSManager.pHandlePool;
+    for(i = 0; i < FS_HANDLE_MAX_COUNT; ++i) {
+        // Return if handle is free
+        if(pFile->type == FS_TYPE_FREE) {
+            pFile->type = FS_TYPE_FREE;
+            return pFile;
+        }
+
+        // goto next;
+        pFile++;
+    }
+
+    return NULL;
+}
+
+static void kFreeFileDirectoryHandle(FILE *pFile) {
+    kMemSet(pFile, 0, sizeof(FILE));
+
+    pFile->type = FS_TYPE_FREE;
+}
+
+static BOOL kCreateFile(const char *filename, DIR_ENTRY *pEntry, int *pDirEntryIdx) {
+    DWORD cluster;
+
+    cluster = kFindFreeCluster();
+    if(cluster == FS_LAST_CLUSTER || kSetClusterLinkData(cluster, FS_LAST_CLUSTER) == FALSE)
+        return FALSE;
+    
+    *pDirEntryIdx = kFindFreeDirEntry();
+    if(*pDirEntryIdx == -1) {
+        kSetClusterLinkData(cluster, FS_FREE_CLUSTER);
+        return FALSE;
+    }
+
+    // Set Directory Entry
+    kMemCpy(pEntry->filename, filename, kStrLen(filename) + 1);
+    pEntry->startClusterIdx = cluster;
+    pEntry->filesize = 0;
+
+    // Regist Directory Entry
+    if(kSetDirEntryData(*pDirEntryIdx, pEntry) == FALSE) {
+        // Return cluster if failed
+        kSetClusterLinkData(cluster, FS_FREE_CLUSTER);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static BOOL kFreeClusterUntilEnd(DWORD clusterIdx) {
+    DWORD curClusterIdx;
+    DWORD nextClusterIdx;
+
+    curClusterIdx = clusterIdx;
+    while(curClusterIdx != FS_LAST_CLUSTER) {
+        // Get next cluster index
+        if(kGetClusterLinkData(curClusterIdx, &nextClusterIdx) == FALSE)
+            return FALSE;
+        
+        // Set current cluster as free
+        if(kSetClusterLinkData(curClusterIdx, FS_FREE_CLUSTER) == FALSE)
+            return FALSE;
+
+        curClusterIdx = nextClusterIdx;
+    }
+
+    return TRUE;
+}
+
+static BOOL kUpdateDirEntry(FILE_HANDLE *pFileHandle) {
+    DIR_ENTRY entry;
+
+    if(pFileHandle == NULL || kGetDirEntryData(pFileHandle->dirEntryOffset, &entry) == FALSE)
+        return FALSE;
+    
+    entry.filesize = pFileHandle->filesize;
+    entry.startClusterIdx = pFileHandle->startClusterIdx;
+
+    if(kSetDirEntryData(pFileHandle->dirEntryOffset, &entry) == FALSE)
+        return FALSE;
+    
+    return TRUE;
 }

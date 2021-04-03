@@ -194,7 +194,7 @@ DIR_ENTRY *kReadDir(DIR *pDir);
 void *kRewindDir(DIR *pDir);
 int kCloseDir(DIR *pDir);
 
-DIR *kWriteZero(const char *filename, DWORD cnt);
+DIR *kWriteZero(FILE *pFile, DWORD cnt);
 DIR *kIsFileOpened(const DIR_ENTRY *pEntry);
 
 static void *kAllocFileDirHandle(void);
