@@ -425,24 +425,37 @@ DWORD kReadFile(void *pBuf, DWORD size, DWORD cnt, FILE *pFile) {
     DWORD copySize;
     FILE_HANDLE *pFileHandle;
     DWORD nextClusterIdx;
+    int retry = 0;
 
-    if(pFile == NULL || pFile->type != FS_TYPE_FILE)
+    if(pFile == NULL || pFile->type != FS_TYPE_FILE) {
+        kPrintf("pFile is NULL or not FILE\n");
         return 0;
+    }
     pFileHandle = &(pFile->fileHandle);
 
     // if offset if end of file OR last cluster, then finish
-    if(pFileHandle->curOffset == pFileHandle->filesize || pFileHandle->curClusterIdx == FS_LAST_CLUSTER)
+    if(pFileHandle->curOffset == pFileHandle->filesize || pFileHandle->curClusterIdx == FS_LAST_CLUSTER) {
+        kPrintf("end of file OR last cluster\n");
         return 0;
+    }
     
     totalCnt = MIN(size * cnt, pFileHandle->filesize - pFileHandle->curOffset);
 
     kLock(&gFSManager.mutex);
 
+    
     readCnt = 0;
     while(readCnt < totalCnt) {
-        if(kReadCluster(pFileHandle->curClusterIdx, gTmpBuf) == FALSE)
+        if(kReadCluster(pFileHandle->curClusterIdx, gTmpBuf) == FALSE) {
+            if (retry < 3) {
+                kPrintf("kReadCluster failed... try again\n");
+                retry++;
+                continue;
+            }
             break;
-        
+        }
+        retry = 0;
+            
         offsetInCluster = pFileHandle->curOffset % FS_CLUTSER_SIZE;
 
         copySize = MIN(FS_CLUTSER_SIZE - offsetInCluster, totalCnt - readCnt);
@@ -475,6 +488,7 @@ DWORD kWriteFile(const void *pBuf, DWORD size, DWORD cnt, FILE *pFile) {
     DWORD copySize;
     DWORD allocClusterIdx;
     DWORD nextClusterIdx;
+    int retry = 0;
 
     FILE_HANDLE *pFileHandle;
 
@@ -513,8 +527,14 @@ DWORD kWriteFile(const void *pBuf, DWORD size, DWORD cnt, FILE *pFile) {
         }
         else if((pFileHandle->curOffset % FS_CLUTSER_SIZE) != 0 ||
                 totalCnt - writeCnt < FS_CLUTSER_SIZE) {
-            if(kReadCluster(pFileHandle->curClusterIdx, gTmpBuf) == FALSE)
+            if(kReadCluster(pFileHandle->curClusterIdx, gTmpBuf) == FALSE) {
+                if (retry < 3) {
+                    kPrintf("kReadCluster failed... try again\n");
+                    retry++;
+                    continue;
+                }
                 break;
+            }
         }
 
         offsetInCluster = pFileHandle->curOffset % FS_CLUTSER_SIZE;
@@ -523,8 +543,15 @@ DWORD kWriteFile(const void *pBuf, DWORD size, DWORD cnt, FILE *pFile) {
 
         kMemCpy(gTmpBuf + offsetInCluster, (char *)pBuf + writeCnt, copySize);
 
-        if(kWriteCluster(pFileHandle->curClusterIdx, gTmpBuf) == FALSE)
+        if(kWriteCluster(pFileHandle->curClusterIdx, gTmpBuf) == FALSE) {
+            if (retry < 3) {
+                kPrintf("kWriteCluster failed... try again\n");
+                retry++;
+                continue;
+            }
             break;
+        }
+        retry = 0;
         
         writeCnt += copySize;
         pFileHandle->curOffset += copySize;
