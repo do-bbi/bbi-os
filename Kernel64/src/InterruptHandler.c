@@ -146,9 +146,6 @@ void kDeviceNotAvailableHandler(int vectorNumber) {
 }
 
 void kHDDHandler(int vectorNumber) {
-    TCB *pFPUTask, *pCurTask;
-    QWORD lastFPUTaskID;
-
     /****************************************************/
     // Print FPU Exception occurred
     char msgBuffer[] = "[INT:  , ]";
@@ -161,7 +158,7 @@ void kHDDHandler(int vectorNumber) {
     msgBuffer[8] = '0' + gHDDInterruptCnt;
     gHDDInterruptCnt = (gHDDInterruptCnt + 1) % 10;
 
-    kPrintStringXY(70, 0, msgBuffer);
+    kPrintStringXY(70, 2, msgBuffer);
 
     // Primary PATA 포트 인터럽트 발생으로 처리
     if(vectorNumber - PIC_IRQ_VECTOR_OFFSET == 14)
