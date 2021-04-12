@@ -132,7 +132,7 @@ int AdjustInSectorSize(int fd, int srcSize) {
     if(adjustSizeToSector) {
         adjustSizeToSector = BYTES_OF_SECTOR - adjustSizeToSector;
 
-        printf("[INFO] File size [%lu] and fill [%u] bytes\n", srcSize, adjustSizeToSector);
+        printf("[INFO] File size [%d] and fill [%d] bytes\n", srcSize, adjustSizeToSector);
         for(i = 0; i < adjustSizeToSector; ++i)
             write(fd, &ch, 1);
     }
