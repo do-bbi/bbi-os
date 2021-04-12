@@ -779,7 +779,7 @@ int kCloseDir(DIR *pDir) {
     return 0;
 }
 
-DIR *kWriteZero(FILE *pFile, DWORD cnt) {
+BOOL kWriteZero(FILE *pFile, DWORD cnt) {
     BYTE *pBuf;
     DWORD remainCnt;
     DWORD writeCnt;
