@@ -1349,11 +1349,11 @@ static void kTestFileIO(const char *pParamBuf) {
     BYTE *pBuf;
     int i, j;
     DWORD randOffset;
-    DWORD byteCnt;
+    DWORD cnt, byteCnt;
     BYTE tmpBuf[1024];
     
     const char testFilename[] = "testfileio.bin";
-    const DWORD MAX_FILE_SIZE = 4 * 1024 * 1024;  // 4 MB
+    const DWORD MAX_FILE_SIZE = 1 * 1024 * 1024;  // 1 MB
 
     kPrintf("==================== File I/O Function Test ====================\n");
     
@@ -1387,8 +1387,9 @@ static void kTestFileIO(const char *pParamBuf) {
     kPrintf("3. Sequential Write Test(Cluster Size)...");
     for(i = 0; i < 100; ++i) {
         kMemSet(pBuf, i, FS_CLUTSER_SIZE);
-        if(fwrite(pBuf, 1, FS_CLUTSER_SIZE, fp) != FS_CLUTSER_SIZE) {
-            kPrintf("[FAIL]\n");
+        cnt = fwrite(pBuf, 1, FS_CLUTSER_SIZE, fp);
+        if(cnt != FS_CLUTSER_SIZE) {
+            kPrintf("[FAIL] - Write %d != %d\n", cnt, FS_CLUTSER_SIZE);
             kPrintf("\t%d Cluster Error\n", i);
             break;
         }
@@ -1401,9 +1402,10 @@ static void kTestFileIO(const char *pParamBuf) {
 
     for(i = 0; i < 100; ++i) {
         // Read
-        if(fread(pBuf, 1, FS_CLUTSER_SIZE, fp) != FS_CLUTSER_SIZE) {
-            kPrintf("[FAIL]\n");
-            return;
+        cnt = fread(pBuf, 1, FS_CLUTSER_SIZE, fp);
+        if(cnt != FS_CLUTSER_SIZE) {
+            kPrintf("[FAIL] - Read %d != %d\n", cnt, FS_CLUTSER_SIZE);
+            break;
         }
 
         // Verify
@@ -1411,6 +1413,7 @@ static void kTestFileIO(const char *pParamBuf) {
             if(pBuf[j] != (BYTE)i) {
                 kPrintf("[FAIL]\n");
                 kPrintf("\t%d Cluster Error - [%X] != [%X]\n", i, pBuf[j], (BYTE)i);
+                i = 100;
                 break;
             }
         }
@@ -1428,7 +1431,7 @@ static void kTestFileIO(const char *pParamBuf) {
     fseek(fp, -100 * FS_CLUTSER_SIZE, SEEK_CUR);
     fread(pBuf, 1, MAX_FILE_SIZE, fp);
     
-    for(i = 0; i < 100; ++i) {
+    for(i = 0; i < 20; ++i) {
         byteCnt = (kRand() % (sizeof(tmpBuf) - 1)) + 1;
         randOffset = kRand() % (MAX_FILE_SIZE - byteCnt);
         
@@ -1439,8 +1442,9 @@ static void kTestFileIO(const char *pParamBuf) {
         kMemSet(tmpBuf, i, byteCnt);
 
         // Write data
-        if(fwrite(tmpBuf, 1, byteCnt, fp) != byteCnt) {
-            kPrintf("[FAIL]\n");
+        cnt = fwrite(tmpBuf, 1, byteCnt, fp);
+        if(cnt != byteCnt) {
+            kPrintf("[FAIL] - Write %d != %d\n", cnt, byteCnt);
             break;
         }
         else
@@ -1449,14 +1453,14 @@ static void kTestFileIO(const char *pParamBuf) {
         kMemSet(pBuf + randOffset, i, byteCnt);
     }
 
-    // Move last offset -> Write 1 Byte to make file size 4MB
+    // Move last offset -> Write 1 Byte to make file size 1MB
     fseek(fp, MAX_FILE_SIZE - 1, SEEK_SET);
     fwrite(&i, 1, 1, fp);
     pBuf[MAX_FILE_SIZE - 1] = (BYTE)i;
 
     kPrintf("6. Random Read & Verify Test...\n");
     
-    for(i = 0; i < 100; ++i) {
+    for(i = 0; i < 20; ++i) {
         byteCnt = (kRand() % (sizeof(tmpBuf) - 1)) + 1;
         randOffset = kRand() % (MAX_FILE_SIZE - byteCnt);
         
@@ -1466,15 +1470,15 @@ static void kTestFileIO(const char *pParamBuf) {
         fseek(fp, randOffset, SEEK_SET);
 
         // Write data
-        if(fread(tmpBuf, 1, byteCnt, fp) != byteCnt) {
-            kPrintf("[FAIL]\n");
+        cnt = fread(tmpBuf, 1, byteCnt, fp);
+        if(cnt != byteCnt) {
+            kPrintf("[FAIL] - Read %d != %d\n", cnt, byteCnt);
             kPrintf("\tRead Fail[%d]\n", randOffset);
             break;
         }
 
         if(kMemCmp(pBuf + randOffset, tmpBuf, byteCnt) != 0) {
-            kPrintf("[FAIL]\n");
-            kPrintf("\tCompare Fail[%d]\n", randOffset);
+            kPrintf("[FAIL] - Not equal\n");
             break;
         }
         
@@ -1482,39 +1486,37 @@ static void kTestFileIO(const char *pParamBuf) {
     }
 
     kPrintf("7. Sequential Write, Read & Verify Test(1 KB)...\n");
-    fseek(fp, -MAX_FILE_SIZE, SEEK_CUR);
+    kPrintf("fseek %d\n", fseek(fp, -(int)MAX_FILE_SIZE, SEEK_CUR));
 
-    // Write 2 MB
+    // Write 512 KB
     for(i = 0; i < MAX_FILE_SIZE / 2 / 1024; ++i) {        
-        kPrintf("\t[%d] | Offset [%d] | Byte [%d]...", i, i * 1024, 1024);
+        kPrintf("\tWrite [%d] | Offset [%d] | Byte [%d]...", i, i * 1024, 1024);
 
         // Write file by 1KB
-        if(fwrite(pBuf + (i * 1024), 1, 1024, fp) != 1024) {
-            kPrintf("[FAIL]\n");
+        cnt = fwrite(pBuf + (i * 1024), 1, 1024, fp);
+        if(cnt != 1024) {
+            kPrintf("[FAIL] - Write %d != %d\n", cnt, 1024);
             break;
         }
         else
             kPrintf("[PASS]\n");
-
-        if(kMemCmp(pBuf + randOffset, tmpBuf, byteCnt) != 0)
-        
-        kPrintf("[PASS]\n");
     }
 
     fseek(fp, -MAX_FILE_SIZE, SEEK_SET);
 
-    // Verify all file(4MB)
+    // Verify all file(1 MB)
     for(i = 0; i < MAX_FILE_SIZE / 1024; ++i) {        
-        kPrintf("\t[%d] | Offset [%d] | Byte [%d]...", i, i * 1024, 1024);
+        kPrintf("\tVerify [%d] | Offset [%d] | Byte [%d]...", i, i * 1024, 1024);
 
         // read file by 1KB
-        if(fread(tmpBuf, 1, 1024, fp) != 1024) {
-            kPrintf("[FAIL]\n");
+        cnt = fread(tmpBuf, 1, 1024, fp);
+        if(cnt != 1024) {
+            kPrintf("[FAIL] - Read %d != %d\n", cnt, 1024);
             break;
         }
 
         if(kMemCmp(pBuf + (i * 1024), tmpBuf, 1024) != 0) {
-            kPrintf("[FAIL]\n");
+            kPrintf("[FAIL] - Not equal\n");
             break;
         }
         else
@@ -1537,7 +1539,7 @@ static void kTestFileIO(const char *pParamBuf) {
 
     // Delete file test
     kPrintf("10. File Delete Test...");
-    if(remove(testFilename) != 0)
+    if(remove(testFilename) == 0)
         kPrintf("[PASS]\n");
     else
         kPrintf("[FAIL]\n");
