@@ -55,6 +55,7 @@ BOOL kReadHDDInfo(BOOL isPrimary, BOOL isMaster, HDD_INFO *pHDDInfo) {
     
     if(kWaitForHDDNotBusy(isPrimary) == FALSE) {
         kUnlock(&gHDDManager.mutex);
+        kPrintf("kWaitForHDDNotBusy == FALSE\n");
         return FALSE;
     }
 
@@ -68,6 +69,7 @@ BOOL kReadHDDInfo(BOOL isPrimary, BOOL isMaster, HDD_INFO *pHDDInfo) {
     // Send Command & Wait
     if(kWaitForHDDReady(isPrimary) == FALSE) {
         kUnlock(&gHDDManager.mutex);
+        kPrintf("kWaitForHDDReady == FALSE\n");
         return FALSE;
     }
 
@@ -81,6 +83,7 @@ BOOL kReadHDDInfo(BOOL isPrimary, BOOL isMaster, HDD_INFO *pHDDInfo) {
 
     if(result == FALSE || (status & HDD_STATUS_ERROR) == HDD_STATUS_ERROR) {
         kUnlock(&gHDDManager.mutex);
+        kPrintf("result == FALSE || ERROR\n");
         return FALSE;
     }
 
@@ -117,6 +120,7 @@ int kReadHDDSector(BOOL isPrimary, BOOL isMaster, DWORD lba, int sectorCnt, char
     // HDD가 수행중인 커맨드가 있을 경우 대기
     if(kWaitForHDDNotBusy(isPrimary) == FALSE) {
         kUnlock(&gHDDManager.mutex);
+        kPrintf("kWaitForHDDNotBusy == FALSE\n");
         return FALSE;
     }
 
@@ -145,6 +149,7 @@ int kReadHDDSector(BOOL isPrimary, BOOL isMaster, DWORD lba, int sectorCnt, char
     // 커맨드 전송이 가능해질 때까지 대기
     if(kWaitForHDDReady(isPrimary) == FALSE) {
         kUnlock(&gHDDManager.mutex);
+        kPrintf("kWaitForHDDReady == FALSE\n");
         return FALSE;
     }
 
@@ -172,9 +177,9 @@ int kReadHDDSector(BOOL isPrimary, BOOL isMaster, DWORD lba, int sectorCnt, char
 
             // 인터럽트가 발생하지 않았다면, 비정상 종료
             if(result == FALSE) {
-                kPrintf("HDD Interrupt Not Occur\n");
+                kPrintf("Read HDD Interrupt Not Occur\n");
                 kUnlock(&gHDDManager.mutex);
-                return FALSE;
+                break;
             }
         }
 
@@ -199,7 +204,7 @@ int kWriteHDDSector(BOOL isPrimary, BOOL isMaster, DWORD lba, int sectorCnt, cha
     BOOL result;
 
     // Check range, Maximum 256 Sectors
-    if(gHDDManager.isDetected == FALSE || 
+    if(gHDDManager.isWritable == FALSE || 
         sectorCnt <= 0 || 256 < sectorCnt || 
         lba + sectorCnt >= gHDDManager.info.totalSectors)
         return 0;
@@ -207,10 +212,8 @@ int kWriteHDDSector(BOOL isPrimary, BOOL isMaster, DWORD lba, int sectorCnt, cha
     portBase = isPrimary ? HDD_PORT_PRIMARY_BASE : HDD_PORT_SECONDARY_BASE;
 
     // HDD가 수행중인 커맨드가 있을 경우 대기
-    if(kWaitForHDDNotBusy(isPrimary) == FALSE) {
-        kUnlock(&gHDDManager.mutex);
+    if(kWaitForHDDNotBusy(isPrimary) == FALSE)
         return FALSE;
-    }
     
     kLock(&gHDDManager.mutex);
 
@@ -253,7 +256,7 @@ int kWriteHDDSector(BOOL isPrimary, BOOL isMaster, DWORD lba, int sectorCnt, cha
         if((status & HDD_STATUS_ERROR) == HDD_STATUS_ERROR) {
             kPrintf("HDD Error Occur\n");
             kUnlock(&gHDDManager.mutex);
-            return i;
+            return 0;
         }
 
         // DATA_REQUEST 비트가 설정됐다면, 데이터 송신
@@ -287,9 +290,9 @@ int kWriteHDDSector(BOOL isPrimary, BOOL isMaster, DWORD lba, int sectorCnt, cha
             kSetHDDInterruptFlag(isPrimary, FALSE);
             // 인터럽트가 발생하지 않았다면, 비정상 종료
             if(result == FALSE) {
-                kPrintf("HDD Interrupt Not Occur\n");
+                kPrintf("Write HDD Interrupt Not Occur\n");
                 kUnlock(&gHDDManager.mutex);
-                return FALSE;
+                break;
             }
         }
     }
@@ -342,7 +345,7 @@ static BOOL kWaitForHDDNotBusy(BOOL isPrimary) {
     waitTickCnt = kGetTickCount() + HDD_WAIT_TIME;
 
     // 일정 시간 동안 HDD의 Busy 상태가 끝날 때까지 대기
-    while(kGetTickCount() <= waitTickCnt) {
+    do {
         // Return HDD Status
         status = kReadHDDStatus(isPrimary);
 
@@ -351,7 +354,7 @@ static BOOL kWaitForHDDNotBusy(BOOL isPrimary) {
             return TRUE;
 
         kSleep(1);
-    }
+    } while(kGetTickCount() <= waitTickCnt);
 
     return FALSE;
 }
@@ -363,14 +366,14 @@ static BOOL kWaitForHDDReady(BOOL isPrimary) {
     waitTickCnt = kGetTickCount() + HDD_WAIT_TIME;
 
     // 일정 시간 동안 HDD 인터럽트 발생을 대기
-    while(kGetTickCount() <= waitTickCnt) {
+    do {
         status = kReadHDDStatus(isPrimary);
 
         // CHECK HDD_STATUS_READY(0x40)
         if((status & HDD_STATUS_READY) == HDD_STATUS_READY)
             return TRUE;
         kSleep(1);
-    }
+    } while(kGetTickCount() <= waitTickCnt);
 
     return FALSE;
 }
@@ -382,14 +385,12 @@ static BOOL kWaitForHDDInterrupt(BOOL isPrimary) {
     waitTickCnt = kGetTickCount() + HDD_WAIT_TIME;
 
     // 일정 시간 동안 HDD 인터럽트 발생을 대기
-    while(kGetTickCount() <= waitTickCnt) {
+    do {
         if(isPrimary && gHDDManager.isPrimaryPortInterruptable)
             return TRUE;
         else if(isPrimary == FALSE && gHDDManager.isSecondaryPortInterruptable)
             return TRUE;
-
-        kSleep(1);
-    }
+    } while(kGetTickCount() <= waitTickCnt);
 
     return FALSE;
 }
