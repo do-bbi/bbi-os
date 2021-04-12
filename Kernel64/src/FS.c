@@ -645,6 +645,25 @@ int kSeekFile(FILE *pFile, int offset, int origin) {
             return -1;
         }
     }
+
+    if(0 < moveCnt) {
+        pFileHandle->prevClusterIdx = prevClusterIdx;
+        pFileHandle->curClusterIdx = curClusterIdx;
+    }
+    else if(startClusterIdx == pFileHandle->startClusterIdx) {
+        pFileHandle->prevClusterIdx = startClusterIdx;
+        pFileHandle->curClusterIdx = startClusterIdx;
+    }
+
+    // 파일 포인터 갱신
+    // 파일 Offset이 파일 크기를 넘었다면, 나머지 부분을 0으로 채워 파일 크기를 늘림
+    if(lastClusterOffset < dstClusterOffset) {
+        pFileHandle->curOffset = pFileHandle->filesize;
+        kUnlock(&gFSManager.mutex);
+
+        if(kWriteZero(pFile, dstOffset - pFileHandle->filesize) == FALSE)
+            return -1;
+    }
     
     pFileHandle->curOffset = dstOffset;
 
@@ -858,7 +877,7 @@ static void *kAllocFileDirHandle(void) {
     for(i = 0; i < FS_HANDLE_MAX_COUNT; ++i) {
         // Return if handle is free
         if(pFile->type == FS_TYPE_FREE) {
-            pFile->type = FS_TYPE_FREE;
+            pFile->type = FS_TYPE_FILE;
             return pFile;
         }
 
