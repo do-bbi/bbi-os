@@ -2,6 +2,8 @@
 # Created by https://www.gitignore.io/api/c,c++,cmake,macos
 # Edit at https://www.gitignore.io/?templates=c,c++,cmake,macos
 
+ImageMaker
+
 ### NASM ###
 *.bin
 
