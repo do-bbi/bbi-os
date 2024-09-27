@@ -582,14 +582,14 @@ int kSeekFile(FILE *pFile, int offset, int origin) {
         break;
     
     case FS_SEEK_CUR:
-        if(offset < 0 && pFileHandle->curOffset + offset < 0)
+        if(offset < 0 && pFileHandle->curOffset < -offset)
             dstOffset = 0;
         else
             dstOffset = pFileHandle->curOffset + offset;
         break;
     
     case FS_SEEK_END:
-        if(offset < 0 && pFileHandle->filesize + offset < 0)
+        if(offset < 0 && pFileHandle->filesize < -offset)
             dstOffset = 0;
         else
             dstOffset = pFileHandle->filesize + offset;
