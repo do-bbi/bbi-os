@@ -22,6 +22,8 @@
         "buddymemory.h": "c",
         "dynamicmemory.h": "c",
         "hdd.h": "c",
-        "fs.h": "c"
+        "fs.h": "c",
+        "stat.h": "c",
+        "__mutex_base": "c"
     }
 }
