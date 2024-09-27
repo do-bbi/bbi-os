@@ -16,10 +16,10 @@
 #define BYTES_OF_SECTOR 512
 
 // 마지막 섹터를 512 Bytes Aligned 위치 까지 0x00으로 채우고, 사용된 총 섹터 개수를 반환
-int AdjustInSectorSize(int fd, int srcSize);               
+int AdjustInSectorSize(int fd, int srcSize);
 
 // 부트 로더에 커널에 대한 정보 삽입
-void WriteKernelInformation(int fd, int kernelTotalSectorCount, int kernel32SectorCount); 
+void WriteKernelInformation(int fd, int kernelTotalSectorCount, int kernel32SectorCount);
 
 // 입력 파일(src FD)의 내용을 출력 파일(dst FD)로 복사하고, 복사 된 크기를 반환
 int CopyFile(int srcFD, int dstFD);
@@ -123,7 +123,6 @@ int main(int argc, char *argv[]) {
 int AdjustInSectorSize(int fd, int srcSize) {
     int i;
     char ch;
-    
     int adjustSizeToSector;
     int sectorCount;
 
@@ -187,7 +186,7 @@ int CopyFile(int srcFD, int dstFD) {
 
         srcFileSize += rCount;
 
-        if(rCount != sizeof(buf)) 
+        if(rCount != sizeof(buf))
             break;
     }
 
