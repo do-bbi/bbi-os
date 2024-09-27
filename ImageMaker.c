@@ -4,6 +4,7 @@
 
 #ifdef __APPLE__
 #include <sys/uio.h>
+#include <unistd.h>
 #else
 #include <io.h>
 #endif
@@ -153,7 +154,7 @@ void WriteKernelInformation(int dstFD, int kernelTotalSectorCount, int kernel32S
     pos = lseek(dstFD, (off_t)5, SEEK_SET);
 
     if(pos == -1) {
-        fprintf(stderr, "lseek failed, return value = %d, errno = %d, %d\n", pos, errno, SEEK_SET);
+        fprintf(stderr, "lseek failed, return value = %d, errno = %d, %d\n", (int)pos, errno, SEEK_SET);
         exit(-1);
     }
 
