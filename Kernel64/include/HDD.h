@@ -113,11 +113,12 @@ BOOL kReadHDDInfo(BOOL isPrimary, BOOL isMaster, HDD_INFO *pHDDInfo);
 int kReadHDDSector(BOOL isPrimary, BOOL isMaster, DWORD lba, int sectorCnt, char *pBuf);
 int kWriteHDDSector(BOOL isPrimary, BOOL isMaster, DWORD lba, int sectorCnt, char *pBuf);
 void kSetHDDInterruptFlag(BOOL isPrimary, BOOL flag);
+unsigned char kWaitForHDDNotBusyAndReadHDDStatus(BOOL isPrimary);
 
 static void kSwapByteInWord(WORD *pData, int wordCnt);
 static BYTE kReadHDDStatus(BOOL isPrimary);
-static BOOL kIsHDDBusy(BOOL isPrimary);
-static BOOL kIsHDDReady(BOOL isPrimary);
+static BOOL kIsHDDBusy(BYTE status);
+static BOOL kIsHDDReady(BYTE status);
 static BOOL kWaitForHDDNotBusy(BOOL isPrimary);
 static BOOL kWaitForHDDReady(BOOL isPrimary);
 static BOOL kWaitForHDDInterrupt(BOOL isPrimary);
