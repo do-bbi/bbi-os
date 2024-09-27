@@ -1,1 +1,4 @@
-qemu-system-x86_64 -L . -m 64 -fda Disk.img -hda HDD.img -rtc base=localtime -M pc
+qemu-system-x86_64 -M pc -m 64 -rtc base=localtime \
+  -drive format=raw,file=Disk.img,if=floppy \
+  -drive format=raw,file=HDD.img,if=ide \
+  -boot c -monitor stdio 
